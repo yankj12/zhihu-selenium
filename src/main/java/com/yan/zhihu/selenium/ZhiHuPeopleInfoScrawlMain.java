@@ -2,11 +2,8 @@ package com.yan.zhihu.selenium;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.sound.midi.MidiDevice.Info;
 
 import org.apache.log4j.Logger;
 import org.openqa.selenium.By;
@@ -46,7 +43,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 	public static void main(String[] args) {
 		WebDriver driver = getWebDriver();
 		
-		ZhiHuPeople zhiHuPeople = personalMainPage(driver, userId);
+		//关注了哪些话题
+//		personalMainPage(driver, userId, "followingTopics");
+		//关注了哪些人
+		personalMainPage(driver, userId, "followings");
 		
 	}
 	
@@ -72,9 +72,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 	 * 
 	 * @param driver
 	 * @param userId
+	 * @param step followingTopics, followings, followers
 	 * @return
 	 */
-	public static ZhiHuPeople personalMainPage(WebDriver driver, String userId) {
+	public static ZhiHuPeople personalMainPage(WebDriver driver, String userId, String step) {
 		ZhiHuPeople zhiHuPeople = new ZhiHuPeople();
 		zhiHuPeople.setUserId(userId);
 		
@@ -217,9 +218,20 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		//点击关注的话题连接，进入关注的话题页面
 		//如果是采用这种方式进入新的页面，那么需要考虑的是打开新的页面处理结束之后，还需要回到原来的页面进行之前的流程
-		topicsFollowingElement.click();
-		followingTopics(driver, userId, 1);
-		System.out.println("关注的话题处理结束");
+		if(step != null) {
+			if("followingTopics".equals(step.trim())) {
+				topicsFollowingElement.click();
+				followingTopics(driver, userId, 1);
+				System.out.println("关注的话题处理结束");
+			}else if("followings".equals(step.trim())) {
+				//页面刷新之后，需要重新获取元素
+				followingElement.click();
+				// 处理关注的人
+				followingPeoples(driver, userId, 1);
+				
+			}
+		}
+		
 		
 		return null;
 	}
@@ -418,4 +430,170 @@ public class ZhiHuPeopleInfoScrawlMain {
 		}
 	}
 	
+	
+	public static void followingPeoples(WebDriver driver, String userId, int currentPageNo) {
+		
+		//可能页面还没有加载出来
+		try {
+			Thread.sleep(3 * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		//Profile-following
+		WebElement profileFollowingElement = driver.findElement(By.id("Profile-following"));
+		
+		//第一个div元素是表头
+		//第二个div元素中是关注的话题列表
+		WebElement followingTopicListBodyElement = profileFollowingElement.findElements(By.tagName("div")).get(1);
+		
+		List<WebElement> listItemElements = profileFollowingElement.findElements(By.className("List-item"));
+		
+		if(listItemElements != null && listItemElements.size() > 0) {
+			for(WebElement itemElement:listItemElements) {
+				ZhiHuPeople zhiHuPeople = new ZhiHuPeople();
+				
+				//data-za-module="TopicItem"
+//				WebElement contentItemElement = itemElement.findElement(By.className("ContentItem"));
+//				String dataZaModule = contentItemElement.getAttribute("data-za-module");
+//				
+//				//data-za-module='{"card":{"content":{"type":"User","member_hash_id":"79b988ec04a51afb1f36346be9db74ea","follower_num":18196}}}'
+//				//这个是topic的一些数据
+//				
+//				JSONObject jsonObj = JSON.parseObject(dataZaModule);
+//				JSONObject card = (JSONObject)jsonObj.get("card");
+//				JSONObject content = (JSONObject)card.get("content");
+//				String type = (String)content.get("type");
+//				String member_hash_id = (String)content.get("member_hash_id");
+				
+				
+				//classname为“ContentItem”的div，这个div中包含着一个classname为“ContentItem-main”的div，所以直接获取后者会方便些
+				WebElement contentItemMainElement = itemElement.findElement(By.className("ContentItem-main"));
+				
+				WebElement imageDivElement = contentItemMainElement.findElement(By.className("ContentItem-image"));
+				WebElement headDivElement = contentItemMainElement.findElement(By.className("ContentItem-head"));
+				
+				//imageDivElement是classname为“ContentItem-image”的div
+				//获取图片的src，srcset，width，height
+				WebElement imgElement = imageDivElement.findElement(By.tagName("img"));
+				String imageSrc = imgElement.getAttribute("src");
+				//srcset比src的图片大，大约是后者的2倍
+				String imageSrcset = imgElement.getAttribute("srcset");
+				
+				String imageWidth = imgElement.getAttribute("width");
+				String imageHeight = imgElement.getAttribute("height");
+				
+				zhiHuPeople.setImageSrc(imageSrc);
+				zhiHuPeople.setImageSrcset(imageSrcset);
+				zhiHuPeople.setImageWidth(Integer.parseInt(imageWidth));
+				zhiHuPeople.setImageHeight(Integer.parseInt(imageHeight));
+				
+				//headDivElement是classname为“ContentItem-head”的div
+				WebElement contentItemTitleElement = headDivElement.findElement(By.className("ContentItem-title"));
+				
+				WebElement linkElement = contentItemTitleElement.findElement(By.className("Popover"));
+
+				WebElement aElement = linkElement.findElement(By.tagName("a"));
+				String userName = aElement.getText();
+				//     /people/wang-xi-65-12
+				String userUrl = aElement.getAttribute("href");
+				int index = userUrl.lastIndexOf("/");
+				String userId2 = userUrl.substring(index + 1);
+				
+				zhiHuPeople.setUserId(userId2);
+				zhiHuPeople.setRelativeUrl(userUrl);
+				zhiHuPeople.setUserName(userName);
+
+				WebElement peopleItemMetaElement = headDivElement.findElement(By.className("ContentItem-meta"));
+				WebElement peopleItemStatusElement = peopleItemMetaElement.findElement(By.className("ContentItem-status"));
+				List<WebElement> spanElements = peopleItemStatusElement.findElements(By.tagName("span"));
+				
+				if(spanElements != null && spanElements.size() > 0) {
+					int i = 0;
+					for(WebElement spanEle:spanElements) {
+						//15个答案
+						String linkText = spanEle.getText();
+						String regEx = "\\d+";
+						// 编译正则表达式
+						Pattern pattern = Pattern.compile(regEx);
+						Matcher matcher = pattern.matcher(linkText);
+						if(matcher.find()) {
+							String answersInTopicCountStr = matcher.group();
+							int count = Integer.parseInt(answersInTopicCountStr);
+							//System.out.println(answersInTopicCount);
+							if(i == 0) {
+								//回答
+								zhiHuPeople.setAnswerCount(count);
+							}else if(i == 1) {
+								//文章
+								zhiHuPeople.setArticleCount(count);
+							}else if(i == 2) {
+								//关注者
+								zhiHuPeople.setFollowingCount(count);
+							}
+						}
+						i++;
+					}
+					
+				}
+		    	
+		    	
+		    	//TODO 先保存关注的这个用户的基本信息
+				ZhiHuPeopleMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
+				ZhiHuPeople people = zhiHuTopicMongoDaoUtil.findZhiHuPeopleByUserId(userId2);
+		    	if(people == null) {
+		    		zhiHuPeople.setInsertTime(new Date());
+		    		zhiHuPeople.setUpdateTime(new Date());
+		    		zhiHuTopicMongoDaoUtil.insertZhiHuPeople(zhiHuPeople);
+		    	}
+		    	//TODO 维护下当前视角知乎用户关注数据中关注的数组数据
+		    	zhiHuTopicMongoDaoUtil.updateZhiHuPeopleAddToFollowingSet(userId, userId2);
+		    	
+			}
+		}
+		
+		
+		//分页信息
+		WebElement paginationElement = profileFollowingElement.findElement(By.className("Pagination"));
+		//理论上我只要点击最后一个可用的分页按钮就可以往下一页走，但是我们还要知道什么时候结束
+		//所以知道最大页还是有用的
+		//获取最大页数，通过在第一页的时候，在分页部分，找button中的text，找到符合数字的，比较出数字中的最大值就是最大页数
+		List<WebElement> buttonElements = paginationElement.findElements(By.tagName("button"));
+		int maxPageNo = 1;
+		if(buttonElements != null && buttonElements.size() > 0) {
+			for(WebElement ele:buttonElements) {
+				String text = ele.getText();
+				//判断下是否为数字
+				//数字、...、下一页、上一页，这4中情况
+				String regEx = "^\\d+$";
+			    // 编译正则表达式
+			    Pattern pattern = Pattern.compile(regEx);
+			    // 忽略大小写的写法
+			    // Pattern pat = Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
+			    
+		    	Matcher matcher = pattern.matcher(text);
+		    	// 字符串是否与正则表达式相匹配
+				if(matcher.matches()) {
+					int num = Integer.parseInt(text);
+					if(num > maxPageNo) {
+						maxPageNo = num;
+					}
+				}
+			}
+		}
+		//当前页，class中有如下内容
+		//PaginationButton--current
+		WebElement currentPageElement = paginationElement.findElement(By.className("PaginationButton--current"));
+		String currentPageNoStr = currentPageElement.getText();
+		
+		if(currentPageNo < maxPageNo) {
+			//有下一页，点击下一页按钮
+			System.out.println("处理下一页");
+			//By.cssSelector("[class='NumberBoard FollowshipCard-counts']")
+			paginationElement.findElement(By.cssSelector("[class='Button PaginationButton PaginationButton-next Button--plain']")).click();
+			followingPeoples(driver, userId, currentPageNo + 1);
+		}else {
+			//没有下一页了，不继续下面的处理
+		}
+	}
 }

@@ -19,6 +19,20 @@ public class ZhiHuPeople {
 	
 	private String userId;
 	
+	private String relativeUrl;
+	
+	private String imageSrc;
+	
+	private String imageSrcset;
+	
+	private Integer imageWidth;
+	
+	private Integer imageHeight;
+	
+	private Integer answerCount;
+	
+	private Integer articleCount;
+	
 	/**
 	 * 被赞同数
 	 */
@@ -44,6 +58,8 @@ public class ZhiHuPeople {
 	 */
 	private String followingUrl;
 	
+	private List<String> followingIds;
+	
 	/**
 	 * 被关注
 	 */
@@ -55,6 +71,8 @@ public class ZhiHuPeople {
 	private String followersUrl;
 	
 	private String followingTopicsUrl;
+	
+	private List<String> followerIds;
 	
 	/**
 	 * 关注的话题
@@ -212,6 +230,78 @@ public class ZhiHuPeople {
 
 	public void setUpdateTime(Date updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public List<String> getFollowingIds() {
+		return followingIds;
+	}
+
+	public void setFollowingIds(List<String> followingIds) {
+		this.followingIds = followingIds;
+	}
+
+	public List<String> getFollowerIds() {
+		return followerIds;
+	}
+
+	public void setFollowerIds(List<String> followerIds) {
+		this.followerIds = followerIds;
+	}
+
+	public String getImageSrc() {
+		return imageSrc;
+	}
+
+	public void setImageSrc(String imageSrc) {
+		this.imageSrc = imageSrc;
+	}
+
+	public String getImageSrcset() {
+		return imageSrcset;
+	}
+
+	public void setImageSrcset(String imageSrcset) {
+		this.imageSrcset = imageSrcset;
+	}
+
+	public Integer getImageWidth() {
+		return imageWidth;
+	}
+
+	public void setImageWidth(Integer imageWidth) {
+		this.imageWidth = imageWidth;
+	}
+
+	public Integer getImageHeight() {
+		return imageHeight;
+	}
+
+	public void setImageHeight(Integer imageHeight) {
+		this.imageHeight = imageHeight;
+	}
+
+	public String getRelativeUrl() {
+		return relativeUrl;
+	}
+
+	public void setRelativeUrl(String relativeUrl) {
+		this.relativeUrl = relativeUrl;
+	}
+
+	public Integer getAnswerCount() {
+		return answerCount;
+	}
+
+	public void setAnswerCount(Integer answerCount) {
+		this.answerCount = answerCount;
+	}
+
+	public Integer getArticleCount() {
+		return articleCount;
+	}
+
+	public void setArticleCount(Integer articleCount) {
+		this.articleCount = articleCount;
 	}
 	
 }
