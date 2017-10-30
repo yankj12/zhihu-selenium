@@ -2,9 +2,16 @@ package com.yan.zhihu.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import org.bson.BsonArray;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+
 
 public class SchameDocumentUtil {
 
@@ -20,6 +27,9 @@ public class SchameDocumentUtil {
 				if(methodName.startsWith("get")){
 					String fieldName = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
 					Class returnType = method.getReturnType();
+					//这个是用来处理带泛型的的类型
+					Type type = method.getGenericReturnType();
+					
 					Object value = null;
 					try {
 						value = method.invoke(object, new Object[0]);
@@ -33,7 +43,26 @@ public class SchameDocumentUtil {
 								doc.append("_id", new ObjectId(value.toString()));
 							}
 						}else{
-							doc.append(fieldName, value);
+							if(returnType == List.class) {
+//								if(type instanceof ParameterizedType){  
+//					                ParameterizedType parameterizedType = (ParameterizedType) type;  
+//					                //获取参数的类型  
+//					                //System.out.println(parameterizedType.getRawType());  
+//					                //获取参数的泛型列表  
+//					                Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();  
+//					                Class type2 = (Class)actualTypeArguments[0];
+//					                System.out.println(type2);  
+//					            }
+								List list = (List)value;
+								BsonArray bsonArray = null;
+								if(list != null) {
+									bsonArray = new BsonArray(list);
+								}
+								doc.append(fieldName, bsonArray);
+							}else {
+								doc.append(fieldName, value);
+							}
+							
 						}
 					}
 					
@@ -78,7 +107,15 @@ public class SchameDocumentUtil {
 								value = document.get("_id");
 								value = value.toString();
 							}else{
-								value = document.get(fieldName);
+								if(returnType == List.class) {
+									BsonArray bsonArray = (BsonArray)document.get(fieldName);
+									if(bsonArray != null) {
+										value = Arrays.asList(bsonArray.toArray());
+									}
+								}else {
+									value = document.get(fieldName);
+									
+								}
 							}
 							
 							setterMethod.invoke(object, value);
