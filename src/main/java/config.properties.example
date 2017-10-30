@@ -1,0 +1,6 @@
+userId=yankj12
+
+browserType=firefox
+webdriver.firefox.bin=D:\\program\\application\\Mozilla_Firefox\\firefox.exe
+webdriver.gecko.driver=E:\\selenium\\WebDriver\\geckodriver.exe
+

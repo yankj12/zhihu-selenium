@@ -2,6 +2,7 @@ package com.yan.zhihu.selenium;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,6 +16,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.yan.common.PropertiesIOUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleTopicMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuTopicMongoDaoUtil;
@@ -24,12 +26,24 @@ import com.yan.zhihu.model.ZhiHuTopic;
 
 public class ZhiHuPeopleInfoScrawlMain {
 	
+	private static String userId;
+	
+	private static String webdriverFirefoxBin;
+	
+	private static String webdriverGeckoDriver;
+	
+	static {
+		Properties properties = PropertiesIOUtil.loadProperties("config.properties");
+		userId = properties.getProperty("userId");
+		webdriverFirefoxBin = properties.getProperty("webdriver.firefox.bin");
+		webdriverGeckoDriver = properties.getProperty("webdriver.gecko.driver");
+	}
+	
 	private static Logger logger = Logger.getLogger(ZhiHuPeopleInfoScrawlMain.class);
 	
 	public static final String ZHI_HU_ROOT_URL = "https://www.zhihu.com";
 	
 	public static void main(String[] args) {
-		String userId = "yankj12";
 		WebDriver driver = getWebDriver();
 		
 		ZhiHuPeople zhiHuPeople = personalMainPage(driver, userId);
@@ -41,8 +55,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 	 * @return
 	 */
 	public static WebDriver getWebDriver() {
-		System.setProperty("webdriver.firefox.bin","D:\\program\\application\\Mozilla_Firefox\\firefox.exe"); 
-		System.setProperty("webdriver.gecko.driver", "E:\\selenium\\WebDriver\\geckodriver.exe");
+		System.setProperty("webdriver.firefox.bin", webdriverFirefoxBin); 
+		System.setProperty("webdriver.gecko.driver", webdriverGeckoDriver);
 		WebDriver driver = new FirefoxDriver();
 		
 		//将浏览器最大化
