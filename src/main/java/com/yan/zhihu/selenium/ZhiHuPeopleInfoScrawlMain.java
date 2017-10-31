@@ -2,6 +2,7 @@ package com.yan.zhihu.selenium;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
