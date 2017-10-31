@@ -108,9 +108,15 @@ public class SchameDocumentUtil {
 								value = value.toString();
 							}else{
 								if(returnType == List.class) {
-									BsonArray bsonArray = (BsonArray)document.get(fieldName);
-									if(bsonArray != null) {
-										value = Arrays.asList(bsonArray.toArray());
+									value = document.get(fieldName);
+									if(value instanceof List || value instanceof ArrayList) {
+										//如果document中存的是ArrayList类型，那么不能使用BsonArray来转
+										
+									}else if (value instanceof BsonArray) {
+										BsonArray bsonArray = (BsonArray)value;
+										if(bsonArray != null) {
+											value = Arrays.asList(bsonArray.toArray());
+										}
 									}
 								}else {
 									value = document.get(fieldName);
