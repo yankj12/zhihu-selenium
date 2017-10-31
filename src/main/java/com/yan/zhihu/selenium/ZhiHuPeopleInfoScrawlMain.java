@@ -31,7 +31,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 	private static String webdriverGeckoDriver;
 	
 	static {
-		Properties properties = PropertiesIOUtil.loadProperties("config.properties");
+		Properties properties = PropertiesIOUtil.loadProperties("/config.properties");
 		userId = properties.getProperty("userId");
 		webdriverFirefoxBin = properties.getProperty("webdriver.firefox.bin");
 		webdriverGeckoDriver = properties.getProperty("webdriver.gecko.driver");
