@@ -276,4 +276,24 @@ public class ZhiHuPeopleMongoDaoUtil {
 		 
 	}
 	
+	public void updateZhiHuPeopleAddToFollowerSet(String userId, String followerId){
+		//To connect to a single MongoDB instance:
+	    //You can explicitly specify the hostname and the port:
+		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
+
+		//Access a Database
+		MongoDatabase database = mongoClient.getDatabase("zhihu");
+		
+		//Access a Collection
+		MongoCollection<Document> collection = database.getCollection("ZhiHuPeople");
+		
+		
+		//Create a Document
+		 Document doc = new Document();
+		 doc.append("followerIds", followerId);
+		 
+		 //Update a Document
+		 collection.updateOne(Filters.eq("userId", userId), new Document("$addToSet", doc));
+		 
+	}
 }
