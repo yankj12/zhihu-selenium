@@ -19,6 +19,8 @@ public class ZhiHuPeople {
 	
 	private String userId;
 	
+	private String memberHashId;
+	
 	private String relativeUrl;
 	
 	private String imageSrc;
@@ -302,6 +304,14 @@ public class ZhiHuPeople {
 
 	public void setArticleCount(Integer articleCount) {
 		this.articleCount = articleCount;
+	}
+
+	public String getMemberHashId() {
+		return memberHashId;
+	}
+
+	public void setMemberHashId(String memberHashId) {
+		this.memberHashId = memberHashId;
 	}
 	
 }
