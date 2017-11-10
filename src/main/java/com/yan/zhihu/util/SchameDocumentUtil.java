@@ -2,10 +2,10 @@ package com.yan.zhihu.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.bson.BsonArray;
@@ -60,7 +60,28 @@ public class SchameDocumentUtil {
 								}
 								doc.append(fieldName, bsonArray);
 							}else {
-								doc.append(fieldName, value);
+								if(value.getClass() == byte.class || value.getClass() == Byte.class
+										|| value.getClass() == short.class || value.getClass() == Short.class
+										|| value.getClass() == int.class || value.getClass() == Integer.class
+										|| value.getClass() == long.class || value.getClass() == Long.class
+										
+										|| value.getClass() == float.class || value.getClass() == Float.class
+										|| value.getClass() == double.class || value.getClass() == Double.class
+										
+										|| value.getClass() == char.class || value.getClass() == Character.class
+										|| value.getClass() == String.class
+										
+										|| value.getClass() == boolean.class || value.getClass() == Boolean.class
+										
+										|| value.getClass() == Date.class
+										){
+									doc.append(fieldName, value);
+								}else{
+									Class subClazz = value.getClass();
+									Document subDoc = schameToDocument(value, subClazz);
+									doc.append(fieldName, subDoc);
+								}
+								
 							}
 							
 						}
@@ -105,23 +126,28 @@ public class SchameDocumentUtil {
 							
 							if("id".equals(fieldName)){
 								value = document.get("_id");
-								value = value.toString();
+								if(value != null){
+									value = value.toString();
+								}
 							}else{
-								if(returnType == List.class) {
-									value = document.get(fieldName);
-									if(value instanceof List || value instanceof ArrayList) {
-										//如果document中存的是ArrayList类型，那么不能使用BsonArray来转
-										
-									}else if (value instanceof BsonArray) {
-										BsonArray bsonArray = (BsonArray)value;
-										if(bsonArray != null) {
-											value = Arrays.asList(bsonArray.toArray());
+								value = document.get(fieldName);
+								if(value != null){
+									if(returnType == List.class) {
+										if(value instanceof List || value instanceof ArrayList) {
+											//如果document中存的是ArrayList类型，那么不能使用BsonArray来转
+											
+										}else if (value instanceof BsonArray) {
+											BsonArray bsonArray = (BsonArray)value;
+											if(bsonArray != null) {
+												value = Arrays.asList(bsonArray.toArray());
+											}
 										}
 									}
-								}else {
-									value = document.get(fieldName);
-									
 								}
+							}
+							
+							if(value instanceof Document){
+								value = documentToSchame((Document)value, returnType);
 							}
 							
 							setterMethod.invoke(object, value);
