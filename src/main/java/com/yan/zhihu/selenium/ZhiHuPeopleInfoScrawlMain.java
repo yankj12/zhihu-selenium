@@ -762,9 +762,6 @@ public class ZhiHuPeopleInfoScrawlMain {
 				
 				//如果用户的活动已经阅读过了，那么我们
 				
-				//休息5秒，避免加载不出来，也避免访问过快
-				Thread.sleep(2 * 1000);
-				
 				//每次滚动50%
 				long addHeight = currentHeight/2;
 				currentHeight = currentHeight + addHeight;
@@ -775,6 +772,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 				logger.info("向下滚动滚动条第 " + (i+1) + "次");
 				i++;
 				
+				//休息5秒，避免加载不出来，也避免访问过快
+				Thread.sleep(5 * 1000);
 			}
 		} catch (Exception e) {
             logger.error("Fail to set the scroll." + e.getLocalizedMessage());
