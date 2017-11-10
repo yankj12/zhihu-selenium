@@ -288,7 +288,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 				zhiHuTopic.setType(type);
 				zhiHuTopic.setToken(token);
 				zhiHuPeopleTopic.setType(type);
-				zhiHuPeopleTopic.setToken(token);
+				zhiHuPeopleTopic.setTopicId(token);
 				
 				//classname为“ContentItem”的div，这个div中包含着一个classname为“ContentItem-main”的div，所以直接获取后者会方便些
 				WebElement contentItemMainElement = element.findElement(By.className("ContentItem-main"));
@@ -310,12 +310,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 				zhiHuTopic.setImageSrcset(imageSrcset);
 				zhiHuTopic.setImageWidth(Integer.parseInt(imageWidth));
 				zhiHuTopic.setImageHeight(Integer.parseInt(imageHeight));
-				zhiHuPeopleTopic.setImageSrc(imageSrc);
-				zhiHuPeopleTopic.setImageSrcset(imageSrcset);
-				zhiHuPeopleTopic.setImageWidth(Integer.parseInt(imageWidth));
-				zhiHuPeopleTopic.setImageHeight(Integer.parseInt(imageHeight));
-				
-				
+								
 				//headDivElement是classname为“ContentItem-head”的div
 				WebElement linkElement = headDivElement.findElement(By.className("ContentItem-title"));
 				WebElement aElement = linkElement.findElement(By.tagName("a"));
@@ -324,7 +319,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 				
 				zhiHuTopic.setRelativeUrl(topicUrl);
 				zhiHuTopic.setTopicName(topicName);
-				zhiHuPeopleTopic.setRelativeUrl(topicUrl);
+				
 				zhiHuPeopleTopic.setTopicName(topicName);
 				
 				WebElement answersInTopicElement = headDivElement.findElement(By.className("ContentItem-meta"));

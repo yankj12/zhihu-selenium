@@ -11,6 +11,11 @@ public class ZhiHuPeopleTopic {
 
 	private String id;
 	
+	/**
+	 * 话题的主键
+	 * 类似于主键的字段
+	 * 话题的token
+	 */
 	private String topicId;
 	
 	private String topicName;
@@ -18,25 +23,9 @@ public class ZhiHuPeopleTopic {
 	private String userId;
 	
 	/**
-	 * 话题的主键
-	 * 类似于主键的字段
-	 */
-	private String token;
-	
-	/**
 	 * 类型，当然是topic了
 	 */
 	private String type;
-	
-	private String relativeUrl;
-	
-	private String imageSrc;
-	
-	private String imageSrcset;
-	
-	private Integer imageWidth;
-	
-	private Integer imageHeight;
 	
 	/**
 	 * 这个知乎用户在这个话题下的答案的连接
@@ -84,28 +73,12 @@ public class ZhiHuPeopleTopic {
 		this.userId = userId;
 	}
 
-	public String getToken() {
-		return token;
-	}
-
-	public void setToken(String token) {
-		this.token = token;
-	}
-
 	public String getType() {
 		return type;
 	}
 
 	public void setType(String type) {
 		this.type = type;
-	}
-
-	public String getRelativeUrl() {
-		return relativeUrl;
-	}
-
-	public void setRelativeUrl(String relativeUrl) {
-		this.relativeUrl = relativeUrl;
 	}
 
 	public String getAnswersInTopicUrl() {
@@ -138,38 +111,6 @@ public class ZhiHuPeopleTopic {
 
 	public void setUpdateTime(Date updateTime) {
 		this.updateTime = updateTime;
-	}
-
-	public String getImageSrc() {
-		return imageSrc;
-	}
-
-	public void setImageSrc(String imageSrc) {
-		this.imageSrc = imageSrc;
-	}
-
-	public String getImageSrcset() {
-		return imageSrcset;
-	}
-
-	public void setImageSrcset(String imageSrcset) {
-		this.imageSrcset = imageSrcset;
-	}
-
-	public Integer getImageWidth() {
-		return imageWidth;
-	}
-
-	public void setImageWidth(Integer imageWidth) {
-		this.imageWidth = imageWidth;
-	}
-
-	public Integer getImageHeight() {
-		return imageHeight;
-	}
-
-	public void setImageHeight(Integer imageHeight) {
-		this.imageHeight = imageHeight;
 	}
 	
 }
