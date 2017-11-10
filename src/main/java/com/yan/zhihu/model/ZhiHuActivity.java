@@ -4,6 +4,7 @@ import java.util.Date;
 
 import com.yan.zhihu.model.subvo.AnswerInfo;
 import com.yan.zhihu.model.subvo.ArticleInfo;
+import com.yan.zhihu.model.subvo.CollectionInfo;
 import com.yan.zhihu.model.subvo.ColumnInfo;
 import com.yan.zhihu.model.subvo.QuestionInfo;
 import com.yan.zhihu.model.subvo.TopicInfo;
@@ -52,6 +53,8 @@ public class ZhiHuActivity {
 	private ColumnInfo column;
 	
 	private TopicInfo topic;
+	
+	private CollectionInfo collection;
 	
 	private Date insertTime;
 	
@@ -167,6 +170,14 @@ public class ZhiHuActivity {
 
 	public void setActivityTypeFullName(String activityTypeFullName) {
 		this.activityTypeFullName = activityTypeFullName;
+	}
+
+	public CollectionInfo getCollection() {
+		return collection;
+	}
+
+	public void setCollection(CollectionInfo collection) {
+		this.collection = collection;
 	}
 	
 }

@@ -3,8 +3,10 @@ package com.yan.zhihu.selenium;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +20,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.yan.common.PropertiesIOUtil;
+import com.yan.zhihu.dao.ZhiHuActivityMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuColumnMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleTopicMongoDaoUtil;
@@ -29,7 +32,10 @@ import com.yan.zhihu.model.ZhiHuPeopleTopic;
 import com.yan.zhihu.model.ZhiHuTopic;
 import com.yan.zhihu.model.subvo.AnswerInfo;
 import com.yan.zhihu.model.subvo.ArticleInfo;
+import com.yan.zhihu.model.subvo.CollectionInfo;
+import com.yan.zhihu.model.subvo.ColumnInfo;
 import com.yan.zhihu.model.subvo.QuestionInfo;
+import com.yan.zhihu.model.subvo.TopicInfo;
 
 public class ZhiHuPeopleInfoScrawlMain {
 	
@@ -57,14 +63,14 @@ public class ZhiHuPeopleInfoScrawlMain {
 		personalMainPage(driver, userId, "activities");
 		
 		//关注了哪些话题
-		personalMainPage(driver, userId, "followingTopics");
-		
-		personalMainPage(driver, userId, "followingColumns");
-		
-		//关注了哪些人
-		personalMainPage(driver, userId, "followings");
-		//那些人关注了我
-		personalMainPage(driver, userId, "followers");
+//		personalMainPage(driver, userId, "followingTopics");
+//		
+//		personalMainPage(driver, userId, "followingColumns");
+//		
+//		//关注了哪些人
+//		personalMainPage(driver, userId, "followings");
+//		//那些人关注了我
+//		personalMainPage(driver, userId, "followers");
 		
 		
 	}
@@ -267,31 +273,34 @@ public class ZhiHuPeopleInfoScrawlMain {
 		try {
 			JavascriptExecutor jse = (JavascriptExecutor) driver;
 			
-			String getScrollHeight = "document.documentElement.scrollTop";
+			//String getScrollHeight = "document.documentElement.scrollTop";
+			
+			
+			ZhiHuActivityMongoDaoUtil zhiHuActivityMongoDaoUtil = new ZhiHuActivityMongoDaoUtil();
 			
 			long currentHeight = 500L;
 			
-			//最近的用户活动还没有结束
-			boolean currentActivitiesNotFinish = true;
+			//只查看最近一段时间内的活动
+			boolean currentActiviesNotFinish = true;
 			//滚动滚动条的次数
 			int i = 0;
+			//是否还有新的活动
+			boolean hasNewActivies = true;
+			
+			Set<String> activitySet = new HashSet<>();
 			
 			//循环终止的条件
 			//1、获取最近一段时间的内容
 			//2、最多循环100次
 			//3、有可能内容不够，即使再刷新内容也无法更新了
-			while( currentActivitiesNotFinish && i < 100){
+			while( currentActiviesNotFinish && hasNewActivies && i < 100){
+				
+				//用来判断每次向下滚动滚动条，是否有还有新的活动
+				long newActivityCount = 0L;
+				
 				//long currentHeight = (Long)jse.executeScript(getScrollHeight);
-				logger.info("滚动条高度 : " + currentHeight);
 				
-				//每次滚动50%
-				currentHeight = currentHeight + currentHeight/2;
-				String setScrollHeight = "document.documentElement.scrollTop=" + currentHeight;  
-				jse.executeScript(setScrollHeight);
-				logger.info("向下滚动滚动条第 " + (i+1) + "次");
-				i++;
-				
-				//TODO 获取用户的活动
+				// 获取用户的活动
 				WebElement profileActivitiesElement = driver.findElement(By.id("Profile-activities"));
 				List<WebElement> listItemElements = profileActivitiesElement.findElements(By.className("List-item"));
 				
@@ -306,6 +315,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 						List<WebElement> spanElements = listItemMetaElement.findElements(By.tagName("span"));
 						String activityTypeFullName = spanElements.get(0).getText().trim();
 						String timeText = spanElements.get(1).getText();
+						
+						logger.info(timeText);
 						
 						Calendar calendar = Calendar.getInstance();
 						int timeCount = 0;
@@ -329,16 +340,26 @@ public class ZhiHuPeopleInfoScrawlMain {
 						}else if("天前".equals(timeUnit.trim())){
 							timeUnit = "天";
 							calendar.add(Calendar.DATE, -1 * timeCount);
-						}else if("小时前".equals(timeUnit.trim())){
+						}else if("月前".equals(timeUnit.trim())){
 							timeUnit = "月";
 							calendar.add(Calendar.MONTH, -1 * timeCount);
 						}
+						
+						//只获取最近两天内的活动
+						if(timeCount >= 2 && "月".equals(timeUnit)) {
+							currentActiviesNotFinish = false;
+							logger.info("loop break currentActiviesNotFinish");
+							break;
+						}
+						
 						Date activityDate = calendar.getTime();
 				    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 						zhiHuActivity.setActivityDay(sdf.format(activityDate));
 				    	
 						//赞了文章，收藏了文章，赞同了回答，收藏了回答，关注了问题，回答了问题，关注了专栏，关注了收藏夹，关注了话题，发布了想法
 						String activityType = null;
+						String itemName = null;
+						
 						if(activityTypeFullName.endsWith("赞了文章")){
 							activityType = "赞了文章";
 							
@@ -350,6 +371,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
 							String articleRelativeUrl = aElement.getAttribute("href");
 							String articleName = aElement.getText();
+							itemName = articleName;
+							
 							int index1 = articleRelativeUrl.lastIndexOf("/");
 							String articleId = articleRelativeUrl.substring(index1 + 1);
 							articleInfo.setArticleId(articleId);
@@ -357,7 +380,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 							
 							//回答的作者信息
 							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
-							WebElement authorInfoElement = contentItemElement.findElement(By.className("AuthorInfo"));
+							WebElement authorInfoElement = contentItemMetaElement.findElement(By.cssSelector("[class='AuthorInfo ArticleItem-authorInfo']"));
 							
 							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
 							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
@@ -391,6 +414,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
 							String articleRelativeUrl = aElement.getAttribute("href");
 							String articleName = aElement.getText();
+							itemName = articleName;
+							
 							int index1 = articleRelativeUrl.lastIndexOf("/");
 							String articleId = articleRelativeUrl.substring(index1 + 1);
 							articleInfo.setArticleId(articleId);
@@ -455,10 +480,11 @@ public class ZhiHuPeopleInfoScrawlMain {
 							String answerId = answerRelativeUrl.substring(index1 + 1);
 							answerInfo.setAnswerId(answerId);
 							answerInfo.setAnswerRelativeUrl(answerRelativeUrl);
+							itemName = answerId;
 							
 							//回答的作者信息
 							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
-							WebElement authorInfoElement = contentItemElement.findElement(By.className("AuthorInfo"));
+							WebElement authorInfoElement = contentItemMetaElement.findElement(By.className("AuthorInfo"));
 							
 							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
 							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
@@ -483,6 +509,65 @@ public class ZhiHuPeopleInfoScrawlMain {
 							
 						}else if(activityTypeFullName.endsWith("收藏了回答")){
 							activityType = "收藏了回答";
+							
+							AnswerInfo answerInfo = new AnswerInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem AnswerItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//问题的id和问题的全链接
+							List<WebElement> metaElements = contentItemTitleElement.findElements(By.tagName("meta"));
+							if(metaElements != null && metaElements.size() > 0){
+								for(WebElement metaElement:metaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String questionUrl = content;
+										
+										int index = questionUrl.lastIndexOf("/");
+										String questionId = questionUrl.substring(index + 1);
+										answerInfo.setQuestionId(questionId);
+									}else if("name".equals(itemprop.trim())){
+										String questionName = content;
+										answerInfo.setQuestionName(questionName);
+									}
+								}
+							}
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String answerRelativeUrl = aElement.getAttribute("href");
+							int index1 = answerRelativeUrl.lastIndexOf("/");
+							String answerId = answerRelativeUrl.substring(index1 + 1);
+							answerInfo.setAnswerId(answerId);
+							answerInfo.setAnswerRelativeUrl(answerRelativeUrl);
+							itemName = answerId;
+							
+							//回答的作者信息
+							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+							WebElement authorInfoElement = contentItemMetaElement.findElement(By.className("AuthorInfo"));
+							
+							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
+							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
+								for(WebElement metaElement:authorInfoMetaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String authorUrl = content;
+										
+										int index = authorUrl.lastIndexOf("/");
+										String authorId = authorUrl.substring(index + 1);
+										answerInfo.setAuthorId(authorId);
+									}else if("name".equals(itemprop.trim())){
+										String authorName = content;
+										answerInfo.setAuthorName(authorName);
+									}
+								}
+							}
+							
+							zhiHuActivity.setAnswer(answerInfo);
+							
 						}else if(activityTypeFullName.endsWith("关注了问题")){
 							activityType = "关注了问题";
 							
@@ -494,6 +579,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
 							String questionRelativeUrl = aElement.getAttribute("href");
 							String questionName = aElement.getText();
+							itemName = questionName;
+							
 							int index1 = questionRelativeUrl.lastIndexOf("/");
 							String questionId = questionRelativeUrl.substring(index1 + 1);
 							questionInfo.setQuestionId(questionId);
@@ -503,27 +590,167 @@ public class ZhiHuPeopleInfoScrawlMain {
 							
 						}else if(activityTypeFullName.endsWith("回答了问题")){
 							activityType = "回答了问题";
+							
+							AnswerInfo answerInfo = new AnswerInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem AnswerItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//问题的id和问题的全链接
+							List<WebElement> metaElements = contentItemTitleElement.findElements(By.tagName("meta"));
+							if(metaElements != null && metaElements.size() > 0){
+								for(WebElement metaElement:metaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String questionUrl = content;
+										
+										int index = questionUrl.lastIndexOf("/");
+										String questionId = questionUrl.substring(index + 1);
+										answerInfo.setQuestionId(questionId);
+									}else if("name".equals(itemprop.trim())){
+										String questionName = content;
+										answerInfo.setQuestionName(questionName);
+									}
+								}
+							}
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String answerRelativeUrl = aElement.getAttribute("href");
+							int index1 = answerRelativeUrl.lastIndexOf("/");
+							String answerId = answerRelativeUrl.substring(index1 + 1);
+							answerInfo.setAnswerId(answerId);
+							answerInfo.setAnswerRelativeUrl(answerRelativeUrl);
+							itemName = answerId;
+							
+							//回答的作者信息
+							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+							WebElement authorInfoElement = contentItemMetaElement.findElement(By.className("AuthorInfo"));
+							
+							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
+							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
+								for(WebElement metaElement:authorInfoMetaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String authorUrl = content;
+										
+										int index = authorUrl.lastIndexOf("/");
+										String authorId = authorUrl.substring(index + 1);
+										answerInfo.setAuthorId(authorId);
+									}else if("name".equals(itemprop.trim())){
+										String authorName = content;
+										answerInfo.setAuthorName(authorName);
+									}
+								}
+							}
+							
+							zhiHuActivity.setAnswer(answerInfo);
+							
 						}else if(activityTypeFullName.endsWith("关注了专栏")){
 							activityType = "关注了专栏";
+							
+							ColumnInfo columnInfo = new ColumnInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String columnRelativeUrl = aElement.getAttribute("href");
+							String columnName = aElement.getText();
+							int index1 = columnRelativeUrl.lastIndexOf("/");
+							String columnId = columnRelativeUrl.substring(index1 + 1);
+							columnInfo.setColumnId(columnId);
+							columnInfo.setColumnName(columnName);
+							itemName = columnName;
+							
+							zhiHuActivity.setColumn(columnInfo);
+							
 						}else if(activityTypeFullName.endsWith("关注了收藏夹")){
 							activityType = "关注了收藏夹";
+							
+							CollectionInfo collectionInfo = new CollectionInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String collectionRelativeUrl = aElement.getAttribute("href");
+							String collectionName = aElement.getText();
+							int index1 = collectionRelativeUrl.lastIndexOf("/");
+							String collectionId = collectionRelativeUrl.substring(index1 + 1);
+							
+							collectionInfo.setCollectionId(collectionId);
+							collectionInfo.setCollectionName(collectionName);
+							itemName = collectionName;
+							
+							zhiHuActivity.setCollection(collectionInfo);
+							
 						}else if(activityTypeFullName.endsWith("关注了话题")){
 							activityType = "关注了话题";
+							
+							TopicInfo topicInfo = new TopicInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String topicRelativeUrl = aElement.getAttribute("href");
+							String topicName = aElement.getText();
+							int index1 = topicRelativeUrl.lastIndexOf("/");
+							String topicId = topicRelativeUrl.substring(index1 + 1);
+							topicInfo.setTopicId(topicId);
+							topicInfo.setTopicName(topicName);
+							itemName = topicName;
+							
+							zhiHuActivity.setTopic(topicInfo);
+							
 						}else if(activityTypeFullName.endsWith("发布了想法")){
 							activityType = "发布了想法";
+							
+							WebElement richContentInnerElement = element.findElement(By.cssSelector("[class='RichContent-inner']"));
+							String text = richContentInnerElement.getText();
+							itemName = text;
+							
 						}else{
 							activityType = activityTypeFullName;
 							//特殊情况记录进日志
 						}
 						
+						zhiHuActivity.setItemName(itemName);
 						zhiHuActivity.setActivityType(activityType);
 						zhiHuActivity.setActivityTypeFullName(activityTypeFullName);
 						
-						zhiHuActivity.setInsertTime(new Date());
-						zhiHuActivity.setUpdateTime(new Date());
-						
+						String key = activityTypeFullName + "," + itemName;
+						if(activitySet.contains(key)) {
+							//不做处理
+						}else {
+							ZhiHuActivity activity = zhiHuActivityMongoDaoUtil.findZhiHuActivityByActivityTypeFullNameAndItemName(activityTypeFullName, itemName);
+							if(activity == null) {
+								zhiHuActivity.setInsertTime(new Date());
+								zhiHuActivity.setUpdateTime(new Date());
+								zhiHuActivityMongoDaoUtil.insertZhiHuActivity(zhiHuActivity);
+								newActivityCount++;
+							}else {
+								String id = activity.getId();
+								zhiHuActivity.setId(id);
+								zhiHuActivity.setUpdateTime(new Date());
+								zhiHuActivityMongoDaoUtil.updateZhiHuActivity(zhiHuActivity);
+							}
+							activitySet.add(key);
+						}
 					}
+					
 				}
+				
+//				//如果每次向下滚动滚动条，都没有新的活动要保存，那么说明没有新的活动可以加载出来了
+//				if(newActivityCount == 0L) {
+//					hasNewActivies = false;
+//					logger.info("loop break hasNewActivies");
+//					break;
+//				}
 				
 				//用户的活动类型：赞了文章，收藏了文章，赞同了回答，收藏了回答，关注了问题，回答了问题，关注了专栏，关注了收藏夹，关注了话题，发布了想法
 				//用户的活动时间	1分钟前，1小时前，1天前，1个月前
@@ -536,7 +763,18 @@ public class ZhiHuPeopleInfoScrawlMain {
 				//如果用户的活动已经阅读过了，那么我们
 				
 				//休息5秒，避免加载不出来，也避免访问过快
-				Thread.sleep(5 * 1000);
+				Thread.sleep(2 * 1000);
+				
+				//每次滚动50%
+				long addHeight = currentHeight/2;
+				currentHeight = currentHeight + addHeight;
+				String setScrollHeight = "document.documentElement.scrollTop=" + currentHeight;  
+				jse.executeScript(setScrollHeight);
+				
+				logger.info("滚动条高度 : " + currentHeight + "，高度增加" + addHeight);
+				logger.info("向下滚动滚动条第 " + (i+1) + "次");
+				i++;
+				
 			}
 		} catch (Exception e) {
             logger.error("Fail to set the scroll." + e.getLocalizedMessage());
