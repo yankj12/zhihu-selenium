@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -45,6 +46,9 @@ public class ZhiHuPeopleInfoScrawlMain {
 	
 	public static void main(String[] args) {
 		WebDriver driver = getWebDriver();
+		
+		//用户动态，或者叫做用户活动
+		personalMainPage(driver, userId, "activities");
 		
 		//关注了哪些话题
 		personalMainPage(driver, userId, "followingTopics");
@@ -228,7 +232,9 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//点击关注的话题连接，进入关注的话题页面
 		//如果是采用这种方式进入新的页面，那么需要考虑的是打开新的页面处理结束之后，还需要回到原来的页面进行之前的流程
 		if(step != null) {
-			if("followingTopics".equals(step.trim())) {
+			if("activities".equals(step.trim())){
+				personalActivities(driver, userId);
+			}else if("followingTopics".equals(step.trim())) {
 				topicsFollowingElement.click();
 				followingTopics(driver, userId, 1);
 				System.out.println("关注的话题处理结束");
@@ -248,6 +254,52 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		
 		return null;
+	}
+	
+	
+	public static void personalActivities(WebDriver driver, String userId) {
+		try {
+			JavascriptExecutor jse = (JavascriptExecutor) driver;
+			
+			String getScrollHeight = "document.documentElement.scrollTop";
+			
+			long currentHeight = 500L;
+			
+			//最近的用户活动还没有结束
+			boolean currentActivitiesNotFinish = true;
+			//滚动滚动条的次数
+			int i = 0;
+			
+			while( currentActivitiesNotFinish && i < 100){
+//				long currentHeight = (Long)jse.executeScript(getScrollHeight);
+				logger.info("滚动条高度 : " + currentHeight);
+				
+				//每次滚动50%
+				currentHeight = currentHeight + currentHeight/2;
+				String setScrollHeight = "document.documentElement.scrollTop=" + currentHeight;  
+				jse.executeScript(setScrollHeight);
+				logger.info("向下滚动滚动条第 " + (i+1) + "次");
+				i++;
+				
+				//TODO 获取用户的活动
+				
+				//用户的活动类型：收藏了文章，赞同了回答，收藏了回答，关注了问题，关注了专栏，关注了收藏夹，赞了文章，回答了问题，关注了话题，发布了想法，
+				//用户的活动时间	1分钟前，1小时前，1天前，1个月前
+				
+				
+				//判断下当前用户活动的活动时间据今天时间，只读取最近几天的活动
+				
+				//判断用户的活动是否存在
+				
+				//如果用户的活动已经阅读过了，那么我们
+				
+				//休息5秒，避免加载不出来，也避免访问过快
+				Thread.sleep(5 * 1000);
+			}
+		} catch (Exception e) {
+            logger.error("Fail to set the scroll." + e.getLocalizedMessage());
+        }
+		
 	}
 	
 	/**
