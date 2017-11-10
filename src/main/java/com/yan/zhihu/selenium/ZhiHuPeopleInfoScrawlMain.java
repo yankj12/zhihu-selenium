@@ -1,5 +1,7 @@
 package com.yan.zhihu.selenium;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -20,10 +22,14 @@ import com.yan.zhihu.dao.ZhiHuColumnMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleTopicMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuTopicMongoDaoUtil;
+import com.yan.zhihu.model.ZhiHuActivity;
 import com.yan.zhihu.model.ZhiHuColumn;
 import com.yan.zhihu.model.ZhiHuPeople;
 import com.yan.zhihu.model.ZhiHuPeopleTopic;
 import com.yan.zhihu.model.ZhiHuTopic;
+import com.yan.zhihu.model.subvo.AnswerInfo;
+import com.yan.zhihu.model.subvo.ArticleInfo;
+import com.yan.zhihu.model.subvo.QuestionInfo;
 
 public class ZhiHuPeopleInfoScrawlMain {
 	
@@ -270,8 +276,12 @@ public class ZhiHuPeopleInfoScrawlMain {
 			//滚动滚动条的次数
 			int i = 0;
 			
+			//循环终止的条件
+			//1、获取最近一段时间的内容
+			//2、最多循环100次
+			//3、有可能内容不够，即使再刷新内容也无法更新了
 			while( currentActivitiesNotFinish && i < 100){
-//				long currentHeight = (Long)jse.executeScript(getScrollHeight);
+				//long currentHeight = (Long)jse.executeScript(getScrollHeight);
 				logger.info("滚动条高度 : " + currentHeight);
 				
 				//每次滚动50%
@@ -282,8 +292,240 @@ public class ZhiHuPeopleInfoScrawlMain {
 				i++;
 				
 				//TODO 获取用户的活动
+				WebElement profileActivitiesElement = driver.findElement(By.id("Profile-activities"));
+				List<WebElement> listItemElements = profileActivitiesElement.findElements(By.className("List-item"));
 				
-				//用户的活动类型：收藏了文章，赞同了回答，收藏了回答，关注了问题，关注了专栏，关注了收藏夹，赞了文章，回答了问题，关注了话题，发布了想法，
+				if(listItemElements != null && listItemElements.size() > 0) {
+					for(WebElement element:listItemElements) {
+						
+						ZhiHuActivity zhiHuActivity = new ZhiHuActivity();
+						
+						zhiHuActivity.setUserId(userId);
+						
+						WebElement listItemMetaElement = element.findElement(By.className("List-itemMeta"));
+						List<WebElement> spanElements = listItemMetaElement.findElements(By.tagName("span"));
+						String activityTypeFullName = spanElements.get(0).getText().trim();
+						String timeText = spanElements.get(1).getText();
+						
+						Calendar calendar = Calendar.getInstance();
+						int timeCount = 0;
+						
+						String regEx = "\\d+";
+					    Pattern pattern = Pattern.compile(regEx);
+				    	Matcher matcher = pattern.matcher(timeText);
+				    	if(matcher.find()) {
+				    		String timeCountStr = matcher.group();
+				    		timeCount = Integer.parseInt(timeCountStr);
+				    	}
+				    	
+						//X分钟前，X小时前，X天前，X月前
+						String timeUnit = timeText.replaceAll("\\d+", "");
+						if("分钟前".equals(timeUnit.trim())){
+							timeUnit = "分钟";
+							calendar.add(Calendar.MINUTE, -1 * timeCount);
+						}else if("小时前".equals(timeUnit.trim())){
+							timeUnit = "小时";
+							calendar.add(Calendar.HOUR, -1 * timeCount);
+						}else if("天前".equals(timeUnit.trim())){
+							timeUnit = "天";
+							calendar.add(Calendar.DATE, -1 * timeCount);
+						}else if("小时前".equals(timeUnit.trim())){
+							timeUnit = "月";
+							calendar.add(Calendar.MONTH, -1 * timeCount);
+						}
+						Date activityDate = calendar.getTime();
+				    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+						zhiHuActivity.setActivityDay(sdf.format(activityDate));
+				    	
+						//赞了文章，收藏了文章，赞同了回答，收藏了回答，关注了问题，回答了问题，关注了专栏，关注了收藏夹，关注了话题，发布了想法
+						String activityType = null;
+						if(activityTypeFullName.endsWith("赞了文章")){
+							activityType = "赞了文章";
+							
+							ArticleInfo articleInfo = new ArticleInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem ArticleItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//文章id和文章标题
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String articleRelativeUrl = aElement.getAttribute("href");
+							String articleName = aElement.getText();
+							int index1 = articleRelativeUrl.lastIndexOf("/");
+							String articleId = articleRelativeUrl.substring(index1 + 1);
+							articleInfo.setArticleId(articleId);
+							articleInfo.setArticleName(articleName);
+							
+							//回答的作者信息
+							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+							WebElement authorInfoElement = contentItemElement.findElement(By.className("AuthorInfo"));
+							
+							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
+							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
+								for(WebElement metaElement:authorInfoMetaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String authorUrl = content;
+										
+										int index = authorUrl.lastIndexOf("/");
+										String authorId = authorUrl.substring(index + 1);
+										articleInfo.setAuthorId(authorId);
+									}else if("name".equals(itemprop.trim())){
+										String authorName = content;
+										articleInfo.setAuthorName(authorName);
+									}
+								}
+							}
+							
+							zhiHuActivity.setArticle(articleInfo);
+							
+						}else if(activityTypeFullName.endsWith("收藏了文章")){
+							activityType = "收藏了文章";
+							
+							ArticleInfo articleInfo = new ArticleInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem ArticleItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//文章id和文章标题
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String articleRelativeUrl = aElement.getAttribute("href");
+							String articleName = aElement.getText();
+							int index1 = articleRelativeUrl.lastIndexOf("/");
+							String articleId = articleRelativeUrl.substring(index1 + 1);
+							articleInfo.setArticleId(articleId);
+							articleInfo.setArticleName(articleName);
+							
+							//回答的作者信息
+							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+							WebElement authorInfoElement = contentItemMetaElement.findElement(By.cssSelector("[class='AuthorInfo ArticleItem-authorInfo']"));
+							
+							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
+							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
+								for(WebElement metaElement:authorInfoMetaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String authorUrl = content;
+										
+										int index = authorUrl.lastIndexOf("/");
+										String authorId = authorUrl.substring(index + 1);
+										articleInfo.setAuthorId(authorId);
+									}else if("name".equals(itemprop.trim())){
+										String authorName = content;
+										articleInfo.setAuthorName(authorName);
+									}
+								}
+							}
+							
+							zhiHuActivity.setArticle(articleInfo);
+							
+						}else if(activityTypeFullName.endsWith("赞同了回答")){
+							activityType = "赞同了回答";
+							
+							AnswerInfo answerInfo = new AnswerInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem AnswerItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//问题的id和问题的全链接
+							List<WebElement> metaElements = contentItemTitleElement.findElements(By.tagName("meta"));
+							if(metaElements != null && metaElements.size() > 0){
+								for(WebElement metaElement:metaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String questionUrl = content;
+										
+										int index = questionUrl.lastIndexOf("/");
+										String questionId = questionUrl.substring(index + 1);
+										answerInfo.setQuestionId(questionId);
+									}else if("name".equals(itemprop.trim())){
+										String questionName = content;
+										answerInfo.setQuestionName(questionName);
+									}
+								}
+							}
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String answerRelativeUrl = aElement.getAttribute("href");
+							int index1 = answerRelativeUrl.lastIndexOf("/");
+							String answerId = answerRelativeUrl.substring(index1 + 1);
+							answerInfo.setAnswerId(answerId);
+							answerInfo.setAnswerRelativeUrl(answerRelativeUrl);
+							
+							//回答的作者信息
+							WebElement contentItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+							WebElement authorInfoElement = contentItemElement.findElement(By.className("AuthorInfo"));
+							
+							List<WebElement> authorInfoMetaElements = authorInfoElement.findElements(By.tagName("meta"));
+							if(authorInfoMetaElements != null && authorInfoMetaElements.size() > 0){
+								for(WebElement metaElement:authorInfoMetaElements){
+									//url,name
+									String itemprop = metaElement.getAttribute("itemprop");
+									String content = metaElement.getAttribute("content");
+									if("url".equals(itemprop.trim())){
+										String authorUrl = content;
+										
+										int index = authorUrl.lastIndexOf("/");
+										String authorId = authorUrl.substring(index + 1);
+										answerInfo.setAuthorId(authorId);
+									}else if("name".equals(itemprop.trim())){
+										String authorName = content;
+										answerInfo.setAuthorName(authorName);
+									}
+								}
+							}
+							
+							zhiHuActivity.setAnswer(answerInfo);
+							
+						}else if(activityTypeFullName.endsWith("收藏了回答")){
+							activityType = "收藏了回答";
+						}else if(activityTypeFullName.endsWith("关注了问题")){
+							activityType = "关注了问题";
+							
+							QuestionInfo questionInfo = new QuestionInfo();
+							WebElement contentItemElement = element.findElement(By.cssSelector("[class='ContentItem']"));
+							WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+							
+							//答案的相对链接和答案的id
+							WebElement aElement = contentItemTitleElement.findElement(By.tagName("a"));
+							String questionRelativeUrl = aElement.getAttribute("href");
+							String questionName = aElement.getText();
+							int index1 = questionRelativeUrl.lastIndexOf("/");
+							String questionId = questionRelativeUrl.substring(index1 + 1);
+							questionInfo.setQuestionId(questionId);
+							questionInfo.setQuestionName(questionName);
+							
+							zhiHuActivity.setQuestion(questionInfo);
+							
+						}else if(activityTypeFullName.endsWith("回答了问题")){
+							activityType = "回答了问题";
+						}else if(activityTypeFullName.endsWith("关注了专栏")){
+							activityType = "关注了专栏";
+						}else if(activityTypeFullName.endsWith("关注了收藏夹")){
+							activityType = "关注了收藏夹";
+						}else if(activityTypeFullName.endsWith("关注了话题")){
+							activityType = "关注了话题";
+						}else if(activityTypeFullName.endsWith("发布了想法")){
+							activityType = "发布了想法";
+						}else{
+							activityType = activityTypeFullName;
+							//特殊情况记录进日志
+						}
+						
+						zhiHuActivity.setActivityType(activityType);
+						zhiHuActivity.setActivityTypeFullName(activityTypeFullName);
+						
+						zhiHuActivity.setInsertTime(new Date());
+						zhiHuActivity.setUpdateTime(new Date());
+						
+					}
+				}
+				
+				//用户的活动类型：赞了文章，收藏了文章，赞同了回答，收藏了回答，关注了问题，回答了问题，关注了专栏，关注了收藏夹，关注了话题，发布了想法
 				//用户的活动时间	1分钟前，1小时前，1天前，1个月前
 				
 				
