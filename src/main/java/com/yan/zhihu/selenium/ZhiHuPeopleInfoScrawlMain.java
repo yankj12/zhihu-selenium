@@ -25,12 +25,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.yan.common.PropertiesIOUtil;
 import com.yan.zhihu.dao.ZhiHuActivityMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuColumnMongoDaoUtil;
+import com.yan.zhihu.dao.ZhiHuPeopleColumnMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleTopicMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuTopicMongoDaoUtil;
 import com.yan.zhihu.model.ZhiHuActivity;
 import com.yan.zhihu.model.ZhiHuColumn;
 import com.yan.zhihu.model.ZhiHuPeople;
+import com.yan.zhihu.model.ZhiHuPeopleColumn;
 import com.yan.zhihu.model.ZhiHuPeopleTopic;
 import com.yan.zhihu.model.ZhiHuTopic;
 import com.yan.zhihu.model.subvo.AnswerInfo;
@@ -63,14 +65,14 @@ public class ZhiHuPeopleInfoScrawlMain {
 		WebDriver driver = getWebDriver();
 		
 		//用户动态，或者叫做用户活动
-		personalMainPage(driver, userId, "activities");
+//		personalMainPage(driver, userId, "activities");
 		
 		//关注了哪些话题
-//		personalMainPage(driver, userId, "followingTopics");
-//		
-//		personalMainPage(driver, userId, "followingColumns");
-//		
-//		//关注了哪些人
+		personalMainPage(driver, userId, "followingTopics");
+		
+		personalMainPage(driver, userId, "followingColumns");
+		
+		//关注了哪些人
 //		personalMainPage(driver, userId, "followings");
 //		//那些人关注了我
 //		personalMainPage(driver, userId, "followers");
@@ -367,7 +369,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 						}
 						
 						//只获取最近两天内的活动
-						if(timeCount >= 2 && "月".equals(timeUnit)) {
+						if(timeCount >= 10 && "天".equals(timeUnit)) {
 							currentActiviesNotFinish = false;
 							logger.info("loop break currentActiviesNotFinish");
 							break;
@@ -826,6 +828,9 @@ public class ZhiHuPeopleInfoScrawlMain {
 		List<WebElement> listItemElements = profileFollowingElement.findElements(By.className("List-item"));
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
+			ZhiHuTopicMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuTopicMongoDaoUtil();
+	    	ZhiHuPeopleTopicMongoDaoUtil zhiHuPeopleTopicMongoDaoUtil = new ZhiHuPeopleTopicMongoDaoUtil();
+	    	
 			for(WebElement element:listItemElements) {
 				ZhiHuTopic zhiHuTopic = new ZhiHuTopic();
 				ZhiHuPeopleTopic zhiHuPeopleTopic = new ZhiHuPeopleTopic();
@@ -905,7 +910,6 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    	
 		    	
 		    	//TODO 先保存ZhiHuTopic
-		    	ZhiHuTopicMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuTopicMongoDaoUtil();
 		    	ZhiHuTopic tp = zhiHuTopicMongoDaoUtil.findZhiHuTopicByToken(token);
 		    	if(tp == null) {
 		    		zhiHuTopic.setInsertTime(new Date());
@@ -913,8 +917,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    		zhiHuTopicMongoDaoUtil.insertZhiHuTopic(zhiHuTopic);
 		    	}
 		    	//TODO 再保存ZhiHuPeopleTopic
-		    	ZhiHuPeopleTopicMongoDaoUtil zhiHuPeopleTopicMongoDaoUtil = new ZhiHuPeopleTopicMongoDaoUtil();
-		    	ZhiHuPeopleTopic ptp = zhiHuPeopleTopicMongoDaoUtil.findZhiHuPeopleTopicByUserIdAndToken(userId, token);
+		    	ZhiHuPeopleTopic ptp = zhiHuPeopleTopicMongoDaoUtil.findZhiHuPeopleTopicByUserIdAndTopicId(userId, token);
 		    	if(ptp == null) {
 		    		zhiHuPeopleTopic.setInsertTime(new Date());
 		    		zhiHuPeopleTopic.setUpdateTime(new Date());
@@ -1360,6 +1363,9 @@ public class ZhiHuPeopleInfoScrawlMain {
 		List<WebElement> listItemElements = profileFollowingElement.findElements(By.className("List-item"));
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
+			ZhiHuColumnMongoDaoUtil zhiHuColumnMongoDaoUtil = new ZhiHuColumnMongoDaoUtil();
+			ZhiHuPeopleColumnMongoDaoUtil zhiHuPeopleColumnMongoDaoUtil = new ZhiHuPeopleColumnMongoDaoUtil();
+	    	
 			for(WebElement itemElement:listItemElements) {
 				ZhiHuColumn zhiHuColumn = new ZhiHuColumn();
 				
@@ -1447,7 +1453,6 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    	
 		    	
 		    	//TODO 先保存关注的这个专栏的基本信息
-				ZhiHuColumnMongoDaoUtil zhiHuColumnMongoDaoUtil = new ZhiHuColumnMongoDaoUtil();
 				ZhiHuColumn column = zhiHuColumnMongoDaoUtil.findZhiHuColumnByColumnId(columnId);
 		    	if(column == null) {
 		    		zhiHuColumn.setInsertTime(new Date());
@@ -1459,6 +1464,20 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    		zhiHuColumn.setUpdateTime(new Date());
 		    		zhiHuColumnMongoDaoUtil.updateZhiHuColumn(zhiHuColumn);
 		    	}
+		    	
+		    	ZhiHuPeopleColumn zhiHuPeopleColumn = zhiHuPeopleColumnMongoDaoUtil.findZhiHuPeopleColumnByUserIdAndColumnId(userId, columnId);
+		    	if(zhiHuPeopleColumn == null) {
+		    		zhiHuPeopleColumn = new ZhiHuPeopleColumn();
+		    		zhiHuPeopleColumn.setInsertTime(new Date());
+		    		zhiHuPeopleColumn.setUpdateTime(new Date());
+		    		zhiHuPeopleColumn.setUserId(userId);
+		    		zhiHuPeopleColumn.setColumnId(columnId);
+		    		zhiHuPeopleColumn.setColumnName(columnName);
+		    		zhiHuPeopleColumn.setType("column");
+		    		
+		    		zhiHuPeopleColumnMongoDaoUtil.insertZhiHuPeopleColumn(zhiHuPeopleColumn);
+		    	}
+		    	
 		    	
 			}
 		}
