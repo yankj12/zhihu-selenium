@@ -265,7 +265,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 				followingColumns(driver, userId, 1);
 			}else if("followingQuestions".equals(step.trim())) {
 				questionsFollowingElement.click();
-				followingQuestions(driver, userId, 100);
+				followingQuestions(driver, userId, 100, "2");
 			}else if("followings".equals(step.trim())) {
 				//页面刷新之后，需要重新获取元素
 				followingElement.click();
@@ -1535,7 +1535,13 @@ public class ZhiHuPeopleInfoScrawlMain {
 		}
 	}
 	
-	public static void followingQuestions(WebDriver driver, String userId, int currentPageNo) {
+	public static void followingQuestions(WebDriver driver, String userId, int currentPageNo, String enterNextPageType) {
+		logger.info("当前页第" + currentPageNo);
+		
+		//enterNextPageType 1表示在页面上点击下一页进入下一页,2表示通过url中修改url进入下一页
+		if(currentPageNo > 1 && enterNextPageType != null && "2".equals(enterNextPageType.trim())) {
+			driver.get("https://www.zhihu.com/people/" + userId + "/following/questions?page=" + currentPageNo);
+		}
 		
 		//可能页面还没有加载出来
 		try {
@@ -1674,7 +1680,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 			System.out.println("处理下一页");
 			//By.cssSelector("[class='NumberBoard FollowshipCard-counts']")
 			paginationElement.findElement(By.cssSelector("[class='Button PaginationButton PaginationButton-next Button--plain']")).click();
-			followingQuestions(driver, userId, currentPageNo + 1);
+			followingQuestions(driver, userId, currentPageNo + 1, "1");
 		}else {
 			//没有下一页了，不继续下面的处理
 		}
