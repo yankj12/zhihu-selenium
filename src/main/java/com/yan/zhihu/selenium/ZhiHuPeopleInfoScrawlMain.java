@@ -1,10 +1,13 @@
 package com.yan.zhihu.selenium;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -289,6 +292,13 @@ public class ZhiHuPeopleInfoScrawlMain {
 			
 			Set<String> activitySet = new HashSet<>();
 			
+			//活动的日期和itemindex的映射
+			Map<String, Integer> activityDayToItemIndexMap = new HashMap<>();
+			//这个list用来存储活动的日期，这样就可以知道倒数X天是那一天了
+			List<String> activityDayList = new ArrayList<>();
+			
+			Map<String, Integer> activityDayToScrollAddHeightMap = new HashMap<>();
+			
 			//循环终止的条件
 			//1、获取最近一段时间的内容
 			//2、最多循环100次
@@ -304,8 +314,19 @@ public class ZhiHuPeopleInfoScrawlMain {
 				WebElement profileActivitiesElement = driver.findElement(By.id("Profile-activities"));
 				List<WebElement> listItemElements = profileActivitiesElement.findElements(By.className("List-item"));
 				
+				int itemIndex = 0;
+				//倒数前1天的itemIndex
+				if(activityDayList.size() >= 1) {
+					String day = activityDayList.get(activityDayList.size()-1);
+					if(activityDayToItemIndexMap.containsKey(day) && activityDayToItemIndexMap.get(day) != null) {
+						itemIndex = activityDayToItemIndexMap.get(day);
+					}
+				}
+				
 				if(listItemElements != null && listItemElements.size() > 0) {
-					for(WebElement element:listItemElements) {
+					for(;itemIndex<listItemElements.size();itemIndex++) {
+						
+						WebElement element = listItemElements.get(itemIndex);
 						
 						ZhiHuActivity zhiHuActivity = new ZhiHuActivity();
 						
@@ -354,8 +375,15 @@ public class ZhiHuPeopleInfoScrawlMain {
 						
 						Date activityDate = calendar.getTime();
 				    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-						zhiHuActivity.setActivityDay(sdf.format(activityDate));
-				    	
+				    	String activityDay = sdf.format(activityDate);
+						zhiHuActivity.setActivityDay(activityDay);
+						
+						activityDayToItemIndexMap.put(activityDay, itemIndex);
+						if(!activityDayList.contains(activityDay)) {
+							activityDayList.add(activityDay);
+						}
+						
+						
 						//赞了文章，收藏了文章，赞同了回答，收藏了回答，关注了问题，回答了问题，关注了专栏，关注了收藏夹，关注了话题，发布了想法
 						String activityType = null;
 						String itemName = null;
