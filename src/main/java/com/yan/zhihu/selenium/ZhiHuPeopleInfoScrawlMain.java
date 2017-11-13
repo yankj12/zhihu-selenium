@@ -19,12 +19,16 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.yan.common.PropertiesIOUtil;
 import com.yan.zhihu.dao.ZhiHuActivityMongoDaoUtil;
+import com.yan.zhihu.dao.ZhiHuCollectionMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuColumnMongoDaoUtil;
+import com.yan.zhihu.dao.ZhiHuPeopleCollectionMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleColumnMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuPeopleQuestionMongoDaoUtil;
@@ -32,8 +36,10 @@ import com.yan.zhihu.dao.ZhiHuPeopleTopicMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuQuestionMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuTopicMongoDaoUtil;
 import com.yan.zhihu.model.ZhiHuActivity;
+import com.yan.zhihu.model.ZhiHuCollection;
 import com.yan.zhihu.model.ZhiHuColumn;
 import com.yan.zhihu.model.ZhiHuPeople;
+import com.yan.zhihu.model.ZhiHuPeopleCollection;
 import com.yan.zhihu.model.ZhiHuPeopleColumn;
 import com.yan.zhihu.model.ZhiHuPeopleQuestion;
 import com.yan.zhihu.model.ZhiHuPeopleTopic;
@@ -69,14 +75,16 @@ public class ZhiHuPeopleInfoScrawlMain {
 		WebDriver driver = getWebDriver();
 		
 		//用户动态，或者叫做用户活动
-//		personalMainPage(driver, userId, "activities");
+		personalMainPage(driver, userId, "activities");
 		
 		//关注了哪些话题
 //		personalMainPage(driver, userId, "followingTopics");
 		
 //		personalMainPage(driver, userId, "followingColumns");
 		
-		personalMainPage(driver, userId, "followingQuestions");
+		personalMainPage(driver, userId, "followingCollections");
+		
+//		personalMainPage(driver, userId, "followingQuestions");
 		
 		//关注了哪些人
 //		personalMainPage(driver, userId, "followings");
@@ -263,9 +271,12 @@ public class ZhiHuPeopleInfoScrawlMain {
 			}else if("followingColumns".equals(step.trim())) {
 				columnsFollowingElement.click();
 				followingColumns(driver, userId, 1);
+			}else if("followingCollections".equals(step.trim())) {
+				collectionsFollowingElement.click();
+				followingCollections(driver, userId, 1);
 			}else if("followingQuestions".equals(step.trim())) {
 				questionsFollowingElement.click();
-				followingQuestions(driver, userId, 100, "2");
+				followingQuestions(driver, userId, 1, "2");
 			}else if("followings".equals(step.trim())) {
 				//页面刷新之后，需要重新获取元素
 				followingElement.click();
@@ -276,7 +287,6 @@ public class ZhiHuPeopleInfoScrawlMain {
 				followerPeoples(driver, userId, 1);
 			}
 		}
-		
 		
 		return null;
 	}
@@ -377,7 +387,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 						}
 						
 						//只获取最近两天内的活动
-						if(timeCount >= 10 && "天".equals(timeUnit)) {
+						if(timeCount >= 5 && "天".equals(timeUnit)) {
 							currentActiviesNotFinish = false;
 							logger.info("loop break currentActiviesNotFinish");
 							break;
@@ -1535,6 +1545,184 @@ public class ZhiHuPeopleInfoScrawlMain {
 		}
 	}
 	
+	public static void followingCollections(WebDriver driver, String userId, int currentPageNo) {
+		
+		//可能页面还没有加载出来
+		try {
+			Thread.sleep(3 * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		//Profile-following
+		WebElement profileFollowingElement = driver.findElement(By.id("Profile-following"));
+		
+		//第一个div元素是表头
+		//第二个div元素中是关注的话题列表
+		WebElement followingTopicListBodyElement = profileFollowingElement.findElements(By.tagName("div")).get(1);
+		
+		List<WebElement> listItemElements = profileFollowingElement.findElements(By.className("List-item"));
+		
+		if(listItemElements != null && listItemElements.size() > 0) {
+			ZhiHuCollectionMongoDaoUtil zhiHuCollectionMongoDaoUtil = new ZhiHuCollectionMongoDaoUtil();
+			ZhiHuPeopleCollectionMongoDaoUtil zhiHuPeopleCollectionMongoDaoUtil = new ZhiHuPeopleCollectionMongoDaoUtil();
+			
+			for(WebElement itemElement:listItemElements) {
+				ZhiHuCollection zhiHuCollection = new ZhiHuCollection();
+				ZhiHuPeopleCollection zhiHuPeopleCollection = new ZhiHuPeopleCollection();
+
+				//data-za-module="TopicItem"
+				WebElement contentItemElement = itemElement.findElement(By.className("ContentItem"));
+				
+				//headDivElement是classname为“ContentItem-head”的div
+				WebElement contentItemTitleElement = contentItemElement.findElement(By.className("ContentItem-title"));
+				
+				WebElement linkElement = contentItemTitleElement.findElement(By.tagName("a"));
+
+				String collectionName = linkElement.getText();
+				//     /people/wang-xi-65-12
+				String collectionRelativeUrl = linkElement.getAttribute("href");
+				int index = collectionRelativeUrl.lastIndexOf("/");
+				String collectionId = collectionRelativeUrl.substring(index + 1);
+				
+				zhiHuCollection.setCollectionId(collectionId);
+				zhiHuCollection.setCollectionName(collectionName);
+				zhiHuCollection.setRelativeUrl(collectionRelativeUrl);
+
+				zhiHuPeopleCollection.setUserId(userId);
+				zhiHuPeopleCollection.setCollectionId(collectionId);
+				zhiHuPeopleCollection.setCollectionName(collectionName);
+				zhiHuPeopleCollection.setType("collection");
+				
+				WebElement peopleItemMetaElement = contentItemElement.findElement(By.className("ContentItem-meta"));
+				WebElement peopleItemStatusElement = peopleItemMetaElement.findElement(By.className("ContentItem-status"));
+				List<WebElement> spanElements = peopleItemStatusElement.findElements(By.tagName("span"));
+				
+				
+				String regEx = "\\d+";
+				// 编译正则表达式
+				Pattern pattern = Pattern.compile(regEx);
+				
+				if(spanElements != null && spanElements.size() > 0) {
+					int i = 0;
+					for(WebElement spanEle:spanElements) {
+						//15个答案
+						String linkText = spanEle.getText();
+						
+						if(i == 0) {
+							//日期
+							linkText = linkText.replaceAll("更新", "");
+							zhiHuCollection.setContentLastModifyDay(linkText);
+							
+						}else {
+							Matcher matcher = pattern.matcher(linkText);
+							if(matcher.find()) {
+								String answersInTopicCountStr = matcher.group();
+								int count = Integer.parseInt(answersInTopicCountStr);
+								//System.out.println(answersInTopicCount);
+								if(i == 1) {
+									//内容数
+									zhiHuCollection.setFollowersCount(count);;
+								}else if(i == 2) {
+									//关注人数
+									zhiHuCollection.setFollowersCount(count);;
+								}
+							}
+						}
+						i++;
+					}
+					
+				}
+		    	
+		    	
+		    	//TODO 先保存关注的这个专栏的基本信息
+				ZhiHuCollection collection = zhiHuCollectionMongoDaoUtil.findZhiHuCollectionByCollectionId(collectionId);
+		    	if(collection == null) {
+		    		zhiHuCollection.setInsertTime(new Date());
+		    		zhiHuCollection.setUpdateTime(new Date());
+		    		zhiHuCollectionMongoDaoUtil.insertZhiHuCollection(zhiHuCollection);
+		    	}else {
+		    		String id = collection.getId();
+		    		zhiHuCollection.setId(id);
+		    		zhiHuCollection.setUpdateTime(new Date());
+		    		zhiHuCollectionMongoDaoUtil.updateZhiHuCollection(zhiHuCollection);
+		    	}
+		    	
+		    	ZhiHuPeopleCollection peopleCollection = zhiHuPeopleCollectionMongoDaoUtil.findZhiHuPeopleCollectionByUserIdAndCollectionId(userId, collectionId);
+		    	if(peopleCollection == null) {
+		    		zhiHuPeopleCollection.setInsertTime(new Date());
+		    		zhiHuPeopleCollection.setUpdateTime(new Date());
+		    		
+		    		zhiHuPeopleCollectionMongoDaoUtil.insertZhiHuPeopleCollection(zhiHuPeopleCollection);
+		    	}
+		    	
+			}
+		}
+		
+		
+		WebDriverWait wait = new WebDriverWait(driver,10);
+		Boolean isPagination = wait.until(new ExpectedCondition<Boolean>(){
+        	@Override
+            public Boolean apply(WebDriver d) {
+        		Boolean flag = false;
+        		
+        		try {
+					driver.findElement(By.className("Pagination"));
+					flag = true;
+				} catch (Exception e) {
+					logger.error(e.getLocalizedMessage());
+				}
+        		
+                return flag;
+        	}
+        });
+		
+        if(isPagination) {
+        	//分页信息
+        	WebElement paginationElement = profileFollowingElement.findElement(By.className("Pagination"));
+        	//理论上我只要点击最后一个可用的分页按钮就可以往下一页走，但是我们还要知道什么时候结束
+        	//所以知道最大页还是有用的
+        	//获取最大页数，通过在第一页的时候，在分页部分，找button中的text，找到符合数字的，比较出数字中的最大值就是最大页数
+        	List<WebElement> buttonElements = paginationElement.findElements(By.tagName("button"));
+        	int maxPageNo = 1;
+        	if(buttonElements != null && buttonElements.size() > 0) {
+        		for(WebElement ele:buttonElements) {
+        			String text = ele.getText();
+        			//判断下是否为数字
+        			//数字、...、下一页、上一页，这4中情况
+        			String regEx = "^\\d+$";
+        			// 编译正则表达式
+        			Pattern pattern = Pattern.compile(regEx);
+        			// 忽略大小写的写法
+        			// Pattern pat = Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
+        			
+        			Matcher matcher = pattern.matcher(text);
+        			// 字符串是否与正则表达式相匹配
+        			if(matcher.matches()) {
+        				int num = Integer.parseInt(text);
+        				if(num > maxPageNo) {
+        					maxPageNo = num;
+        				}
+        			}
+        		}
+        	}
+        	//当前页，class中有如下内容
+        	//PaginationButton--current
+        	WebElement currentPageElement = paginationElement.findElement(By.className("PaginationButton--current"));
+        	String currentPageNoStr = currentPageElement.getText();
+        	
+        	if(currentPageNo < maxPageNo) {
+        		//有下一页，点击下一页按钮
+        		System.out.println("处理下一页");
+        		//By.cssSelector("[class='NumberBoard FollowshipCard-counts']")
+        		paginationElement.findElement(By.cssSelector("[class='Button PaginationButton PaginationButton-next Button--plain']")).click();
+        		followingCollections(driver, userId, currentPageNo + 1);
+        	}else {
+        		//没有下一页了，不继续下面的处理
+        	}
+        }
+	}
+
 	public static void followingQuestions(WebDriver driver, String userId, int currentPageNo, String enterNextPageType) {
 		logger.info("当前页第" + currentPageNo);
 		
