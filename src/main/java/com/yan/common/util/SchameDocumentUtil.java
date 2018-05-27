@@ -1,14 +1,14 @@
-package com.yan.zhihu.util;
+package com.yan.common.util;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.bson.BsonArray;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -53,12 +53,35 @@ public class SchameDocumentUtil {
 //					                Class type2 = (Class)actualTypeArguments[0];
 //					                System.out.println(type2);  
 //					            }
-								List list = (List)value;
-								BsonArray bsonArray = null;
+								List<Object> list = (List)value;
+								List<Object> list2 = null;
 								if(list != null) {
-									bsonArray = new BsonArray(list);
+									list2 = new ArrayList<>();
+									for(Object obj:list) {
+										if(obj.getClass() == byte.class || obj.getClass() == Byte.class
+												|| obj.getClass() == short.class || obj.getClass() == Short.class
+												|| obj.getClass() == int.class || obj.getClass() == Integer.class
+												|| obj.getClass() == long.class || obj.getClass() == Long.class
+												
+												|| obj.getClass() == float.class || obj.getClass() == Float.class
+												|| obj.getClass() == double.class || obj.getClass() == Double.class
+												
+												|| obj.getClass() == char.class || obj.getClass() == Character.class
+												|| obj.getClass() == String.class
+												
+												|| obj.getClass() == boolean.class || obj.getClass() == Boolean.class
+												
+												|| obj.getClass() == Date.class
+												){
+											list2.add(obj);
+										}else{
+											Class subClazz = obj.getClass();
+											Document subDoc = schameToDocument(obj, subClazz);
+											list2.add(subDoc);
+										}
+									}
 								}
-								doc.append(fieldName, bsonArray);
+								doc.append(fieldName, list2);
 							}else {
 								if(value.getClass() == byte.class || value.getClass() == Byte.class
 										|| value.getClass() == short.class || value.getClass() == Short.class
@@ -95,6 +118,9 @@ public class SchameDocumentUtil {
 		return doc;
 	}
 	
+	
+	//可能应该遍历documen的key来组装对象的
+	//现在采用的是遍历对象的属性，在document中查找下是否存在对应的value
 	public static Object documentToSchame(Document document, Class clazz){
 		Object object = null;
 		//ZhiHuPeople zhiHuPeople = null; 
@@ -115,6 +141,7 @@ public class SchameDocumentUtil {
 					//遍历get方法
 					if(methodName.startsWith("get")){
 						String fieldName = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
+						
 						Class returnType = method.getReturnType();
 						
 						String setterMethodName = "set" + methodName.substring(3);
@@ -133,15 +160,63 @@ public class SchameDocumentUtil {
 								value = document.get(fieldName);
 								if(value != null){
 									if(returnType == List.class) {
+										
 										if(value instanceof List || value instanceof ArrayList) {
-											//如果document中存的是ArrayList类型，那么不能使用BsonArray来转
 											
-										}else if (value instanceof BsonArray) {
-											BsonArray bsonArray = (BsonArray)value;
-											if(bsonArray != null) {
-												value = Arrays.asList(bsonArray.toArray());
+											// 如果是List类型，得到其Generic的类型    
+											
+											//clazz.getField无法得到私有属性
+											//getFields()：获得某个类的所有的公共（public）的字段，包括父类中的字段。 
+											//getDeclaredFields()：获得某个类的所有声明的字段，即包括public、private和proteced，但是不包括父类的申明字段。
+											Field field = clazz.getDeclaredField(fieldName);
+											Type genericType = field.getGenericType();  
+											//得到泛型里的class类型对象
+											//设置一个默认值Object
+											Class<?> genericClazz = Object.class;
+											
+											if(genericType instanceof ParameterizedType){     
+									            ParameterizedType pt = (ParameterizedType) genericType;  
+									            //得到泛型里的class类型对象    
+									            genericClazz = (Class<?>)pt.getActualTypeArguments()[0];   
+									        }
+											
+											
+											//如果document中存的是ArrayList类型，那么不能使用BsonArray来转
+											List<Object> list = (List)value;
+											//因为前面已经判断过value非null了，此处不需要再次判断
+											List<Object> list2 = new ArrayList<>();
+											for(Object obj:list) {
+												if(obj.getClass() == byte.class || obj.getClass() == Byte.class
+														|| obj.getClass() == short.class || obj.getClass() == Short.class
+														|| obj.getClass() == int.class || obj.getClass() == Integer.class
+														|| obj.getClass() == long.class || obj.getClass() == Long.class
+														
+														|| obj.getClass() == float.class || obj.getClass() == Float.class
+														|| obj.getClass() == double.class || obj.getClass() == Double.class
+														
+														|| obj.getClass() == char.class || obj.getClass() == Character.class
+														|| obj.getClass() == String.class
+														
+														|| obj.getClass() == boolean.class || obj.getClass() == Boolean.class
+														
+														|| obj.getClass() == Date.class
+														){
+													list2.add(obj);
+												}else{
+													obj = documentToSchame((Document)obj, genericClazz);
+													
+													list2.add(obj);
+												}
 											}
+											
+											value = list2;
 										}
+//										else if (value instanceof BsonArray) {
+//											BsonArray bsonArray = (BsonArray)value;
+//											if(bsonArray != null) {
+//												value = Arrays.asList(bsonArray.toArray());
+//											}
+//										}
 									}
 								}
 							}

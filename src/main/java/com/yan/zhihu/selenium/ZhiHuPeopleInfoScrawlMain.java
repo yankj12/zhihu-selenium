@@ -25,6 +25,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.yan.common.PropertiesIOUtil;
+import com.yan.common.mongodb.MongoDBConfig;
 import com.yan.zhihu.dao.ZhiHuActivityMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuCollectionMongoDaoUtil;
 import com.yan.zhihu.dao.ZhiHuColumnMongoDaoUtil;
@@ -60,11 +61,30 @@ public class ZhiHuPeopleInfoScrawlMain {
 	
 	private static String webdriverGeckoDriver;
 	
+	private static MongoDBConfig dataSource = new MongoDBConfig();
+	
 	static {
 		Properties properties = PropertiesIOUtil.loadProperties("/config.properties");
 		userId = properties.getProperty("userId");
 		webdriverFirefoxBin = properties.getProperty("webdriver.firefox.bin");
 		webdriverGeckoDriver = properties.getProperty("webdriver.gecko.driver");
+		
+		Properties dbProperties = PropertiesIOUtil.loadProperties("/db.properties");
+		
+		String mongodbIp = dbProperties.getProperty("mongodb.ip");
+		String mongodbPort = dbProperties.getProperty("mongodb.port");
+		String mongodbDatabase = dbProperties.getProperty("mongodb.database");
+		String mongodbDbUserDefined = dbProperties.getProperty("mongodb.dbUserDefined");
+		String mongodbUser = dbProperties.getProperty("mongodb.user");
+		String mongodbPassword = dbProperties.getProperty("mongodb.password");
+		
+		dataSource.setIp(mongodbIp);
+		dataSource.setPort(Integer.parseInt(mongodbPort));
+		dataSource.setDatabase(mongodbDatabase);
+		dataSource.setDbUserDefined(mongodbDbUserDefined);
+		dataSource.setUser(mongodbUser);
+		dataSource.setPassword(mongodbPassword);
+		
 	}
 	
 	private static Logger logger = Logger.getLogger(ZhiHuPeopleInfoScrawlMain.class);
@@ -75,21 +95,21 @@ public class ZhiHuPeopleInfoScrawlMain {
 		WebDriver driver = getWebDriver();
 		
 		//用户动态，或者叫做用户活动
-		personalMainPage(driver, userId, "activities");
+//		personalMainPage(driver, userId, "activities");
 		
 		//关注了哪些话题
 //		personalMainPage(driver, userId, "followingTopics");
 		
 //		personalMainPage(driver, userId, "followingColumns");
 		
-		personalMainPage(driver, userId, "followingCollections");
+//		personalMainPage(driver, userId, "followingCollections");
 		
 //		personalMainPage(driver, userId, "followingQuestions");
 		
 		//关注了哪些人
-//		personalMainPage(driver, userId, "followings");
+		personalMainPage(driver, userId, "followings");
 //		//那些人关注了我
-//		personalMainPage(driver, userId, "followers");
+		personalMainPage(driver, userId, "followers");
 		
 	}
 	
@@ -179,7 +199,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//.findElement(By.cssSelector("[class='Card FollowshipCard']"))
 		//既然知道class属性有空格是多个属性了，那定位的时候取其中的一个就行（并且要唯一），也就是说class="j-inputtext dlemail"，
 		//取j-inputtext 和dlemail都是可以的，这样这个class属性在页面上唯一就行
-		WebElement followshipCardCountsElement = profileSideColumnElement.findElement(By.cssSelector("[class='NumberBoard FollowshipCard-counts']"));
+		WebElement followshipCardCountsElement = profileSideColumnElement.findElement(By.cssSelector("[class='NumberBoard FollowshipCard-counts NumberBoard--divider']"));
 		
 		//关注了 的数量
 		List<WebElement> alinkElements = followshipCardCountsElement.findElements(By.tagName("a"));
@@ -189,7 +209,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//href
 		String followingUrl = followingElement.getAttribute("href");
 		//NumberBoard-name, NumberBoard-value
-		String followingCount = followingElement.findElement(By.className("NumberBoard-value")).getText();
+		String followingCount = followingElement.findElement(By.className("NumberBoard-itemValue")).getAttribute("title");
 		
 		zhiHuPeople.setFollowingUrl(followingUrl);
 		zhiHuPeople.setFollowingCount(Integer.parseInt(followingCount));
@@ -197,7 +217,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//关注者
 		WebElement followersElement = alinkElements.get(1);
 		String followersUrl = followingElement.getAttribute("href");
-		String followersCount = followingElement.findElement(By.className("NumberBoard-value")).getText();
+		String followersCount = followingElement.findElement(By.className("NumberBoard-itemValue")).getAttribute("title");
 		
 		zhiHuPeople.setFollowersUrl(followersUrl);
 		zhiHuPeople.setFollowersCount(Integer.parseInt(followersCount));
@@ -248,6 +268,8 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//不存在添加
 		//如果存在进行更新
 		ZhiHuPeopleMongoDaoUtil zhiHuPeopleMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
+		zhiHuPeopleMongoDaoUtil.setDataSource(dataSource);
+		
 		ZhiHuPeople people = zhiHuPeopleMongoDaoUtil.findZhiHuPeopleByUserId(userId);
 		if(people != null) {
 			logger.info("ZhiHuPeople exists with userId:" +userId + ". update ZhiHuPeople");
@@ -300,6 +322,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 			
 			
 			ZhiHuActivityMongoDaoUtil zhiHuActivityMongoDaoUtil = new ZhiHuActivityMongoDaoUtil();
+			zhiHuActivityMongoDaoUtil.setDataSource(dataSource);
 			
 			long currentHeight = 500L;
 			
@@ -847,7 +870,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
 			ZhiHuTopicMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuTopicMongoDaoUtil();
+			zhiHuTopicMongoDaoUtil.setDataSource(dataSource);
+			
 	    	ZhiHuPeopleTopicMongoDaoUtil zhiHuPeopleTopicMongoDaoUtil = new ZhiHuPeopleTopicMongoDaoUtil();
+	    	zhiHuPeopleTopicMongoDaoUtil.setDataSource(dataSource);
 	    	
 			for(WebElement element:listItemElements) {
 				ZhiHuTopic zhiHuTopic = new ZhiHuTopic();
@@ -1044,7 +1070,7 @@ public class ZhiHuPeopleInfoScrawlMain {
 				
 				//data-za-module="TopicItem"
 				WebElement contentItemElement = itemElement.findElement(By.className("ContentItem"));
-				String dataZaModuleInfo = contentItemElement.getAttribute("data-za-module-info");
+				String dataZaModuleInfo = contentItemElement.getAttribute("data-za-extra-module");
 				
 				//data-za-module-info='{"card":{"content":{"type":"User","member_hash_id":"121b9970625a84d7ad8d35bd4e97de71","follower_num":5676}}}'
 				
@@ -1128,20 +1154,23 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    	
 		    	
 		    	//TODO 先保存关注的这个用户的基本信息
-				ZhiHuPeopleMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
-				ZhiHuPeople people = zhiHuTopicMongoDaoUtil.findZhiHuPeopleByUserId(userId2);
-		    	if(people == null) {
+				ZhiHuPeopleMongoDaoUtil zhiHuPeopleMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
+				zhiHuPeopleMongoDaoUtil.setDataSource(dataSource);
+				
+				ZhiHuPeople people = zhiHuPeopleMongoDaoUtil.findZhiHuPeopleByUserId(userId2);
+		    	
+				if(people == null) {
 		    		zhiHuPeople.setInsertTime(new Date());
 		    		zhiHuPeople.setUpdateTime(new Date());
-		    		zhiHuTopicMongoDaoUtil.insertZhiHuPeople(zhiHuPeople);
+		    		zhiHuPeopleMongoDaoUtil.insertZhiHuPeople(zhiHuPeople);
 		    	}else {
 		    		String id = people.getId();
 		    		zhiHuPeople.setId(id);
 		    		zhiHuPeople.setUpdateTime(new Date());
-		    		zhiHuTopicMongoDaoUtil.updateZhiHuPeople(zhiHuPeople);
+		    		zhiHuPeopleMongoDaoUtil.updateZhiHuPeople(zhiHuPeople);
 		    	}
 		    	//TODO 维护下当前视角知乎用户关注数据中关注的数组数据
-		    	zhiHuTopicMongoDaoUtil.updateZhiHuPeopleAddToFollowerSet(userId, userId2);
+				zhiHuPeopleMongoDaoUtil.updateZhiHuPeopleAddToFollowerSet(userId, userId2);
 		    	
 			}
 		}
@@ -1215,9 +1244,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 				
 				//data-za-module="TopicItem"
 				WebElement contentItemElement = itemElement.findElement(By.className("ContentItem"));
-				String dataZaModuleInfo = contentItemElement.getAttribute("data-za-module-info");
+				String dataZaModuleInfo = contentItemElement.getAttribute("data-za-extra-module");
 				
 				//data-za-module-info='{"card":{"content":{"type":"User","member_hash_id":"121b9970625a84d7ad8d35bd4e97de71","follower_num":5676}}}'
+				System.out.println(dataZaModuleInfo);
 				
 				JSONObject jsonObj = JSON.parseObject(dataZaModuleInfo);
 				JSONObject card = (JSONObject)jsonObj.get("card");
@@ -1299,20 +1329,22 @@ public class ZhiHuPeopleInfoScrawlMain {
 		    	
 		    	
 		    	//TODO 先保存关注的这个用户的基本信息
-				ZhiHuPeopleMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
-				ZhiHuPeople people = zhiHuTopicMongoDaoUtil.findZhiHuPeopleByUserId(userId2);
+				ZhiHuPeopleMongoDaoUtil zhiHuPeopleMongoDaoUtil = new ZhiHuPeopleMongoDaoUtil();
+				zhiHuPeopleMongoDaoUtil.setDataSource(dataSource);
+				
+				ZhiHuPeople people = zhiHuPeopleMongoDaoUtil.findZhiHuPeopleByUserId(userId2);
 		    	if(people == null) {
 		    		zhiHuPeople.setInsertTime(new Date());
 		    		zhiHuPeople.setUpdateTime(new Date());
-		    		zhiHuTopicMongoDaoUtil.insertZhiHuPeople(zhiHuPeople);
+		    		zhiHuPeopleMongoDaoUtil.insertZhiHuPeople(zhiHuPeople);
 		    	}else {
 		    		String id = people.getId();
 		    		zhiHuPeople.setId(id);
 		    		zhiHuPeople.setUpdateTime(new Date());
-		    		zhiHuTopicMongoDaoUtil.updateZhiHuPeople(zhiHuPeople);
+		    		zhiHuPeopleMongoDaoUtil.updateZhiHuPeople(zhiHuPeople);
 		    	}
 		    	//TODO 维护下当前视角知乎用户关注数据中关注的数组数据
-		    	zhiHuTopicMongoDaoUtil.updateZhiHuPeopleAddToFollowingSet(userId, userId2);
+		    	zhiHuPeopleMongoDaoUtil.updateZhiHuPeopleAddToFollowingSet(userId, userId2);
 		    	
 			}
 		}
@@ -1382,8 +1414,11 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
 			ZhiHuColumnMongoDaoUtil zhiHuColumnMongoDaoUtil = new ZhiHuColumnMongoDaoUtil();
+			zhiHuColumnMongoDaoUtil.setDataSource(dataSource);
+			
 			ZhiHuPeopleColumnMongoDaoUtil zhiHuPeopleColumnMongoDaoUtil = new ZhiHuPeopleColumnMongoDaoUtil();
-	    	
+			zhiHuPeopleColumnMongoDaoUtil.setDataSource(dataSource);
+			
 			for(WebElement itemElement:listItemElements) {
 				ZhiHuColumn zhiHuColumn = new ZhiHuColumn();
 				
@@ -1565,7 +1600,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
 			ZhiHuCollectionMongoDaoUtil zhiHuCollectionMongoDaoUtil = new ZhiHuCollectionMongoDaoUtil();
+			zhiHuCollectionMongoDaoUtil.setDataSource(dataSource);
+			
 			ZhiHuPeopleCollectionMongoDaoUtil zhiHuPeopleCollectionMongoDaoUtil = new ZhiHuPeopleCollectionMongoDaoUtil();
+			zhiHuPeopleCollectionMongoDaoUtil.setDataSource(dataSource);
 			
 			for(WebElement itemElement:listItemElements) {
 				ZhiHuCollection zhiHuCollection = new ZhiHuCollection();
@@ -1745,7 +1783,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
 			ZhiHuQuestionMongoDaoUtil zhiHuQuestionMongoDaoUtil = new ZhiHuQuestionMongoDaoUtil();
+			zhiHuQuestionMongoDaoUtil.setDataSource(dataSource);
+			
 	    	ZhiHuPeopleQuestionMongoDaoUtil zhiHuPeopleQuestionMongoDaoUtil = new ZhiHuPeopleQuestionMongoDaoUtil();
+	    	zhiHuPeopleQuestionMongoDaoUtil.setDataSource(dataSource);
 	    	
 			for(WebElement itemElement:listItemElements) {
 				ZhiHuQuestion zhiHuQuestion = new ZhiHuQuestion();

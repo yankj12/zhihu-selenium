@@ -1,0 +1,11 @@
+
+# mongodb
+# key must start with prefix 'mongodb.' or it will mixed with redis.ip
+mongodb.ip=localhost
+mongodb.port=27017
+# database is the database which to connecte
+mongodb.database=test
+# dbUserDefined is the name of the database in which the user is defined
+mongodb.dbUserDefined=teste
+mongodb.user=test
+mongodb.password=test

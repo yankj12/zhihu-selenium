@@ -1,6 +1,7 @@
 package com.yan.zhihu.dao;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -11,26 +12,36 @@ import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.yan.common.mongodb.MongoDBConfig;
+import com.yan.common.util.SchameDocumentUtil;
 import com.yan.zhihu.model.ZhiHuTopic;
-import com.yan.zhihu.util.SchameDocumentUtil;
 
 public class ZhiHuTopicMongoDaoUtil {
 
-	public static void main(String[] args) throws Exception {
-		ZhiHuTopicMongoDaoUtil zhiHuTopicMongoDaoUtil = new ZhiHuTopicMongoDaoUtil();
+	private MongoDBConfig dataSource;
+	
+	public MongoDBConfig getDataSource() {
+		return dataSource;
+	}
+
+	public void setDataSource(MongoDBConfig dataSource) {
+		this.dataSource = dataSource;
 	}
 	
 	public String insertZhiHuTopic(ZhiHuTopic zhiHuTopic){
 
 		//To connect to a single MongoDB instance:
 	    //You can explicitly specify the hostname and the port:
-		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-
+		MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+		MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+		                                         Arrays.asList(credential));
 		//Access a Database
-		MongoDatabase database = mongoClient.getDatabase("zhihu");
+		MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 		
 		//Access a Collection
 		MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -46,6 +57,7 @@ public class ZhiHuTopicMongoDaoUtil {
 		if(doc.get("_id") != null){
 			id = doc.get("_id").toString();
 		}
+		mongoClient.close();
 		return id;
 	}
 	
@@ -56,10 +68,11 @@ public class ZhiHuTopicMongoDaoUtil {
 			
 			//To connect to a single MongoDB instance:
 			//You can explicitly specify the hostname and the port:
-			MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-			
+			MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+			MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+			                                         Arrays.asList(credential));
 			//Access a Database
-			MongoDatabase database = mongoClient.getDatabase("zhihu");
+			MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 			
 			//Access a Collection
 			MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -127,6 +140,7 @@ public class ZhiHuTopicMongoDaoUtil {
 					zhiHuTopics.add(zhiHuTopic);
 				}
 			}
+			mongoClient.close();
 		}
 		
 		return zhiHuTopics;
@@ -139,10 +153,11 @@ public class ZhiHuTopicMongoDaoUtil {
 			
 			//To connect to a single MongoDB instance:
 			//You can explicitly specify the hostname and the port:
-			MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-			
+			MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+			MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+			                                         Arrays.asList(credential));
 			//Access a Database
-			MongoDatabase database = mongoClient.getDatabase("zhihu");
+			MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 			
 			//Access a Collection
 			MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -184,7 +199,7 @@ public class ZhiHuTopicMongoDaoUtil {
 			}
 			
 			count = collection.count(Filters.and(bsons));
-			
+			mongoClient.close();
 		}
 		
 		return count;
@@ -195,10 +210,11 @@ public class ZhiHuTopicMongoDaoUtil {
 		if(id!= null && !"".equals(id.trim())) {
 			//To connect to a single MongoDB instance:
 			//You can explicitly specify the hostname and the port:
-			MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-			
+			MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+			MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+			                                         Arrays.asList(credential));
 			//Access a Database
-			MongoDatabase database = mongoClient.getDatabase("zhihu");
+			MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 			
 			//Access a Collection
 			MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -207,6 +223,7 @@ public class ZhiHuTopicMongoDaoUtil {
 			if(docs != null && docs.size() > 0) {
 				zhiHuTopic = (ZhiHuTopic)SchameDocumentUtil.documentToSchame(docs.get(0), ZhiHuTopic.class);
 			}
+			mongoClient.close();
 		}
 		
 		return zhiHuTopic;
@@ -217,10 +234,11 @@ public class ZhiHuTopicMongoDaoUtil {
 		if(token!= null && !"".equals(token.trim())) {
 			//To connect to a single MongoDB instance:
 			//You can explicitly specify the hostname and the port:
-			MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-			
+			MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+			MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+			                                         Arrays.asList(credential));
 			//Access a Database
-			MongoDatabase database = mongoClient.getDatabase("zhihu");
+			MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 			
 			//Access a Collection
 			MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -229,6 +247,7 @@ public class ZhiHuTopicMongoDaoUtil {
 			if(docs != null && docs.size() > 0) {
 				zhiHuTopic = (ZhiHuTopic)SchameDocumentUtil.documentToSchame(docs.get(0), ZhiHuTopic.class);
 			}
+			mongoClient.close();
 		}
 		
 		return zhiHuTopic;
@@ -237,10 +256,11 @@ public class ZhiHuTopicMongoDaoUtil {
 	public void updateZhiHuTopic(ZhiHuTopic zhiHuTopic){
 		//To connect to a single MongoDB instance:
 	    //You can explicitly specify the hostname and the port:
-		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-
+		MongoCredential credential = MongoCredential.createCredential(dataSource.getUser(), dataSource.getDbUserDefined(), dataSource.getPassword().toCharArray());
+		MongoClient mongoClient = new MongoClient(new ServerAddress(dataSource.getIp(), dataSource.getPort()),
+		                                         Arrays.asList(credential));
 		//Access a Database
-		MongoDatabase database = mongoClient.getDatabase("zhihu");
+		MongoDatabase database = mongoClient.getDatabase(dataSource.getDatabase());
 		
 		//Access a Collection
 		MongoCollection<Document> collection = database.getCollection("ZhiHuTopic");
@@ -251,7 +271,7 @@ public class ZhiHuTopicMongoDaoUtil {
 		 
 		 //Update a Document
 		 collection.updateOne(Filters.eq("_id", doc.get("_id")), new Document("$set", doc));
-		 
+		 mongoClient.close();
 	}
 	
 }
