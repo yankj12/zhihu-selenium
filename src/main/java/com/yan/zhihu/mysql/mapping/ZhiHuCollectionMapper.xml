@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yan.zhihu.mysql.mapping.ZhiHuCollectionMapper">
+	
+    <insert id="insertZhiHuCollection" parameterType="com.yan.zhihu.mysql.schema.ZhiHuCollection">
+    	insert into ZhiHuCollection 
+    	(collectionId, collectionName, authorId, relativeUrl, itemCount, followersCount, contentLastModifyDay, insertTime, updateTime) 
+    	values 
+    	(#{collectionId}, #{collectionName}, #{authorId}, #{relativeUrl}, #{itemCount}, #{followersCount}, #{contentLastModifyDay}, #{insertTime}, #{updateTime})
+    </insert>
+    
+    <select id="queryZhiHuCollectionByCollectionId" parameterType="string" resultType="com.yan.zhihu.mysql.schema.ZhiHuCollection">
+    	select * from ZhiHuCollection where collectionId = #{collectionId}
+    </select>
+    
+</mapper>

@@ -52,6 +52,8 @@ import com.yan.zhihu.model.subvo.CollectionInfo;
 import com.yan.zhihu.model.subvo.ColumnInfo;
 import com.yan.zhihu.model.subvo.QuestionInfo;
 import com.yan.zhihu.model.subvo.TopicInfo;
+import com.yan.zhihu.mysql.service.impl.ZhihuPersonInfoServiceMysqlImpl;
+import com.yan.zhihu.service.facade.ZhihuPersonInfoService;
 
 public class ZhiHuPeopleInfoScrawlMain {
 	
@@ -107,9 +109,11 @@ public class ZhiHuPeopleInfoScrawlMain {
 //		personalMainPage(driver, userId, "followingQuestions");
 		
 		//关注了哪些人
-		personalMainPage(driver, userId, "followings");
-//		//那些人关注了我
-		personalMainPage(driver, userId, "followers");
+//		personalMainPage(driver, userId, "followings");
+		//那些人关注了我
+//		personalMainPage(driver, userId, "followers");
+		// 我创建了哪些收藏夹
+		personalCollections(driver, userId, 1);
 		
 	}
 	
@@ -1914,4 +1918,19 @@ public class ZhiHuPeopleInfoScrawlMain {
 			//没有下一页了，不继续下面的处理
 		}
 	}
+	
+	/**
+	 * 爬取用户的收藏夹信息
+	 * @param driver
+	 * @param userId
+	 * @param currentPageNo
+	 */
+	public static void personalCollections(WebDriver driver, String userId, int currentPageNo) {
+		// https://www.zhihu.com/people/xxxx/collections
+		driver.get("https://www.zhihu.com/people/" + userId + "/collections");
+		
+		ZhihuPersonInfoService zhihuPersonInfoService = new ZhihuPersonInfoServiceMysqlImpl();
+		zhihuPersonInfoService.personalCollectionsIntoDB(driver, userId, currentPageNo);
+	}
+	
 }
