@@ -42,6 +42,9 @@ public class ZhiHuCollectionItem implements Serializable{
 	// 作者名称
 	private String authorName;
 	
+	// 作者id
+	private String authorId;
+	
 	// 作者主页相对链接
 	private String authorRelativeUrl;
 	
@@ -185,4 +188,13 @@ public class ZhiHuCollectionItem implements Serializable{
 	public void setUpdateTime(Date updateTime) {
 		this.updateTime = updateTime;
 	}
+
+	public String getAuthorId() {
+		return authorId;
+	}
+
+	public void setAuthorId(String authorId) {
+		this.authorId = authorId;
+	}
+	
 }

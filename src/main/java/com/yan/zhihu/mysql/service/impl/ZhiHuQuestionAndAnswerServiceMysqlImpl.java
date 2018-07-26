@@ -1,5 +1,6 @@
 package com.yan.zhihu.mysql.service.impl;
 
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,7 +11,10 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
+import com.yan.zhihu.mysql.dao.facade.ZhiHuCollectionItemDaoService;
+import com.yan.zhihu.mysql.dao.impl.ZhiHuCollectionItemDaoServiceMybatisImpl;
 import com.yan.zhihu.mysql.schema.ZhiHuCollectionItem;
+import com.yan.zhihu.mysql.utils.ZhiHuUtil;
 import com.yan.zhihu.service.facade.ZhiHuQuestionAndAnswerService;
 
 public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndAnswerService{
@@ -53,7 +57,8 @@ public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndA
 		List<WebElement> listItemElements = collectionWrapElement.findElements(By.className("zm-item"));
 		
 		if(listItemElements != null && listItemElements.size() > 0) {
-			//TODO 创建数据库dao类
+			// 创建数据库dao类
+			ZhiHuCollectionItemDaoService zhiHuCollectionItemDaoService = new ZhiHuCollectionItemDaoServiceMybatisImpl();
 			
 			for(WebElement itemElement:listItemElements){
 				ZhiHuCollectionItem zhiHuCollectionItem = new ZhiHuCollectionItem();
@@ -153,6 +158,11 @@ public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndA
 						WebElement authorLinkElement = authorLinkSpanElement.findElement(By.tagName("a"));
 						authorRelativeUrl = authorLinkElement.getAttribute("href");
 						zhiHuCollectionItem.setAuthorRelativeUrl(authorRelativeUrl);
+						
+						// 根据作者的url来截取作者的id
+						String authorId = ZhiHuUtil.subUserIdFormUrl(authorRelativeUrl);
+						zhiHuCollectionItem.setAuthorId(authorId);
+						
 					} catch (NoSuchElementException e1) {
 						logger.info("作者[" + authorName + "][" + authorRelativeUrl + "]可能是个匿名用户或者被和谐了");
 					}
@@ -209,6 +219,11 @@ public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndA
 						WebElement authorLinkElement = authorLinkSpanElement.findElement(By.tagName("a"));
 						authorRelativeUrl = authorLinkElement.getAttribute("href");
 						zhiHuCollectionItem.setAuthorRelativeUrl(authorRelativeUrl);
+						
+						// 根据作者的url来截取作者的id
+						String authorId = ZhiHuUtil.subUserIdFormUrl(authorRelativeUrl);
+						zhiHuCollectionItem.setAuthorId(authorId);
+						
 					} catch (NoSuchElementException e1) {
 						logger.info("作者[" + authorName + "][" + authorRelativeUrl + "]可能是个匿名用户或者被和谐了");
 					}
@@ -255,6 +270,22 @@ public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndA
 					throw new RuntimeException("错误的dataType");
 				}
 				
+				// TODO 修改的先不进行
+				ZhiHuCollectionItem collectionItemTmp = zhiHuCollectionItemDaoService.queryZhiHuCollectionItemByAnswerId(answerId);
+				
+				if(collectionItemTmp != null) {
+					// 存在对应记录，属于修改
+					Integer id = collectionItemTmp.getId();
+					zhiHuCollectionItem.setId(id);
+					
+					zhiHuCollectionItem.setUpdateTime(new Date());
+					// TODO 进行修改
+					
+				}else {
+					zhiHuCollectionItem.setInsertTime(new Date());
+					zhiHuCollectionItem.setUpdateTime(new Date());
+					zhiHuCollectionItemDaoService.insertZhiHuCollectionItem(zhiHuCollectionItem);
+				}
 				
 			}
 

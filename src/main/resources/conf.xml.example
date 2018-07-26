@@ -15,6 +15,7 @@
     </environments>
     <mappers>
         <mapper resource="com/yan/zhihu/mysql/mapping/ZhiHuCollectionMapper.xml"/>
+        <mapper resource="com/yan/zhihu/mysql/mapping/ZhiHuCollectionItemMapper.xml"/>
         
     </mappers>
 </configuration>

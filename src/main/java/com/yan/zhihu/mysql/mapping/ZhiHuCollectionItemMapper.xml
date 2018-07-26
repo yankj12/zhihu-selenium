@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yan.zhihu.mysql.mapping.ZhiHuCollectionItemMapper">
+	
+    <insert id="insertZhiHuCollectionItem" parameterType="com.yan.zhihu.mysql.schema.ZhiHuCollectionItem">
+    	insert into ZhiHuCollectionItem 
+    	(collectionId, dataType, dataModule, title, answerUrl, answerId, answerUrlToken, voteCount, authorName, authorId, authorRelativeUrl, authorSummary, contentHTML, summaryInfo, insertTime, updateTime) 
+    	values 
+		(#{collectionId}, #{dataType}, #{dataModule}, #{title}, #{answerUrl}, #{answerId}, #{answerUrlToken}, #{voteCount}, #{authorName}, #{authorId}, #{authorRelativeUrl}, #{authorSummary}, #{contentHTML}, #{summaryInfo}, #{insertTime}, #{updateTime})
+    </insert>
+    
+    <select id="queryZhiHuCollectionItemsByTitle" parameterType="int" resultType="com.yan.zhihu.mysql.schema.ZhiHuCollectionItem">
+    	select * from ZhiHuCollectionItem where title = #{title}
+    </select>
+    
+    <select id="queryZhiHuCollectionItemByAnswerId" parameterType="string" resultType="com.yan.zhihu.mysql.schema.ZhiHuCollectionItem">
+    	select * from ZhiHuCollectionItem where answerId = #{answerId}
+    </select>
+    
+</mapper>
