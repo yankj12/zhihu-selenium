@@ -52,7 +52,9 @@ import com.yan.zhihu.model.subvo.CollectionInfo;
 import com.yan.zhihu.model.subvo.ColumnInfo;
 import com.yan.zhihu.model.subvo.QuestionInfo;
 import com.yan.zhihu.model.subvo.TopicInfo;
+import com.yan.zhihu.mysql.service.impl.ZhiHuQuestionAndAnswerServiceMysqlImpl;
 import com.yan.zhihu.mysql.service.impl.ZhihuPersonInfoServiceMysqlImpl;
+import com.yan.zhihu.service.facade.ZhiHuQuestionAndAnswerService;
 import com.yan.zhihu.service.facade.ZhihuPersonInfoService;
 
 public class ZhiHuPeopleInfoScrawlMain {
@@ -113,7 +115,10 @@ public class ZhiHuPeopleInfoScrawlMain {
 		//那些人关注了我
 //		personalMainPage(driver, userId, "followers");
 		// 我创建了哪些收藏夹
-		personalCollections(driver, userId, 1);
+//		personalCollections(driver, userId, 1);
+		
+		// 爬取用户收藏夹中收藏的内容
+		answersInCollections(driver, "60315883", 1);
 		
 	}
 	
@@ -1931,6 +1936,27 @@ public class ZhiHuPeopleInfoScrawlMain {
 		
 		ZhihuPersonInfoService zhihuPersonInfoService = new ZhihuPersonInfoServiceMysqlImpl();
 		zhihuPersonInfoService.personalCollectionsIntoDB(driver, userId, currentPageNo);
+	}
+	
+	/**
+	 * 爬取用户收藏夹中收藏的内容
+	 * @param driver
+	 * @param collectionId
+	 * @param currentPageNo
+	 */
+	public static void answersInCollections(WebDriver driver, String collectionId, int currentPageNo){
+		
+		// https://www.zhihu.com/collection/60315883
+		// https://www.zhihu.com/collection/60315883?page=2
+		
+		String url = "https://www.zhihu.com/collection/" + collectionId;
+		if(currentPageNo > 1){
+			url += "?page=" + currentPageNo;
+		}
+		driver.get(url);
+		
+		ZhiHuQuestionAndAnswerService zhiHuQuestionAndAnswerService = new ZhiHuQuestionAndAnswerServiceMysqlImpl();
+		zhiHuQuestionAndAnswerService.answersCollectedIntoDB(driver, collectionId, currentPageNo);
 	}
 	
 }
