@@ -1946,15 +1946,6 @@ public class ZhiHuPeopleInfoScrawlMain {
 	 */
 	public static void answersInCollections(WebDriver driver, String collectionId, int currentPageNo){
 		
-		// https://www.zhihu.com/collection/60315883
-		// https://www.zhihu.com/collection/60315883?page=2
-		
-		String url = "https://www.zhihu.com/collection/" + collectionId;
-		if(currentPageNo > 1){
-			url += "?page=" + currentPageNo;
-		}
-		driver.get(url);
-		
 		ZhiHuQuestionAndAnswerService zhiHuQuestionAndAnswerService = new ZhiHuQuestionAndAnswerServiceMysqlImpl();
 		zhiHuQuestionAndAnswerService.answersCollectedIntoDB(driver, collectionId, currentPageNo);
 	}

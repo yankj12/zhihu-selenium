@@ -18,11 +18,17 @@ public class ZhiHuCollectionItem implements Serializable{
 	// 收藏夹id
 	private String collectionId;
 	
+	// Answer,Post
+	private String dataType;
+	
+	// AnswerItem,PostItem
+	private String dataModule;
+	
 	// 收藏内容的标题
 	private String title;
 	
 	// 答案的相对链接
-	private String answerRelativeUrl;
+	private String answerUrl;
 	
 	// 回答的id
 	private String answerId;
@@ -68,6 +74,22 @@ public class ZhiHuCollectionItem implements Serializable{
 		this.collectionId = collectionId;
 	}
 
+	public String getDataType() {
+		return dataType;
+	}
+
+	public void setDataType(String dataType) {
+		this.dataType = dataType;
+	}
+
+	public String getDataModule() {
+		return dataModule;
+	}
+
+	public void setDataModule(String dataModule) {
+		this.dataModule = dataModule;
+	}
+
 	public String getTitle() {
 		return title;
 	}
@@ -76,12 +98,12 @@ public class ZhiHuCollectionItem implements Serializable{
 		this.title = title;
 	}
 
-	public String getAnswerRelativeUrl() {
-		return answerRelativeUrl;
+	public String getAnswerUrl() {
+		return answerUrl;
 	}
 
-	public void setAnswerRelativeUrl(String answerRelativeUrl) {
-		this.answerRelativeUrl = answerRelativeUrl;
+	public void setAnswerUrl(String answerUrl) {
+		this.answerUrl = answerUrl;
 	}
 
 	public String getAnswerId() {
