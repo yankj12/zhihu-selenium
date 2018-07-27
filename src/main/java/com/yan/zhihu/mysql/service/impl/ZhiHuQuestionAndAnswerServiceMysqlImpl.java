@@ -114,12 +114,12 @@ public class ZhiHuQuestionAndAnswerServiceMysqlImpl implements ZhiHuQuestionAndA
 				// 回答的urltoken，和id不是一个概念。我理解的是唯一标识符
 				String answerUrlToken = null;
 				for(WebElement metaElement : answerMetaElements){
-					// itemprop="answer-id"
-					// itemprop="answer-url-token"
+					// itemprop="answer-id" itemprop="post-id"
+					// itemprop="answer-url-token" itemprop="post-url-token"
 					String itemprop = metaElement.getAttribute("itemprop");
-					if("answer-id".equals(itemprop)){
+					if("answer-id".equals(itemprop) || "post-id".equals(itemprop)){
 						answerId = metaElement.getAttribute("content");
-					}else if("answer-url-token".equals(itemprop)){
+					}else if("answer-url-token".equals(itemprop) || "post-url-token".equals(itemprop)){
 						answerUrlToken = metaElement.getAttribute("content");
 					}
 				}
